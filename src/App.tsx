@@ -49,10 +49,12 @@ function App() {
 
   return (
     <>
-      <div className="typing-container">
-        <div className="typing-text">
-          {userInput}
-          <span id="cursor">|</span>
+      <div className="mask-container">
+        <div className="typing-container">
+          <div className="typing-text">
+            {userInput}
+            <span id="cursor">|</span>
+          </div>
         </div>
       </div>
       <button

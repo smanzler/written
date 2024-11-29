@@ -2,7 +2,18 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+
+.mask-container {
+  width: 500px;
   text-align: center;
+
+  mask-image: linear-gradient(to right, transparent, black 30%);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 30%);
 }
 
 .typing-container {
