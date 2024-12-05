@@ -39,7 +39,17 @@
   font-size: inherit;
 }
 
+.button-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
 .done-button {
+  transition: opacity 0.5s;
+}
+
+.reset-button {
   transition: opacity 0.5s;
 }
 

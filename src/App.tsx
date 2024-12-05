@@ -18,6 +18,7 @@ function App() {
       addKey(key);
     } else if (ctrlKey && key === "Backspace") {
       setUserInput((prev) => {
+        if (prev[prev.length - 1] === " ") return prev;
         const trimmed = prev.trimEnd();
         const updated = trimmed.split(" ").slice(0, -1).join(" ");
         return updated.length > 0 ? updated + " " : updated;
@@ -25,10 +26,16 @@ function App() {
     } else if (key.length === 1) {
       addKey(key);
     } else if (key === "Backspace") {
-      setUserInput((prev) => prev.slice(0, -1));
+      setUserInput((prev) =>
+        prev[prev.length - 1] === " " ? prev : prev.slice(0, -1)
+      );
     } else if (key === "Enter") {
       console.log(key);
     }
+  };
+
+  const reset = () => {
+    setUserInput("");
   };
 
   useEffect(() => {
@@ -57,13 +64,23 @@ function App() {
           </div>
         </div>
       </div>
-      <button
-        type="button"
-        className="done-button"
-        style={{ opacity: showButton ? 1 : 0 }}
-      >
-        Done
-      </button>
+      <div className="button-container">
+        <button
+          type="button"
+          className="done-button"
+          style={{ opacity: showButton ? 1 : 0 }}
+        >
+          Done
+        </button>
+        <button
+          type="button"
+          className="reset-button"
+          style={{ opacity: showButton ? 1 : 0 }}
+          onClick={reset}
+        >
+          Reset
+        </button>
+      </div>
     </>
   );
 }
