@@ -1,6 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import "./App.css";
+import { db } from "./db/db";
+import { JournalDates } from "./components/JournalDates";
 
 function App() {
   const [userInput, setUserInput] = useState("");
@@ -10,7 +12,7 @@ function App() {
     setUserInput((prev) => prev + key);
   };
 
-  const handleKeyPress = (event: KeyboardEvent) => {
+  const handleKeyPress = async (event: KeyboardEvent) => {
     const { key, ctrlKey } = event;
 
     if (key === " " || key === "Spacebar") {
@@ -30,8 +32,31 @@ function App() {
         prev[prev.length - 1] === " " ? prev : prev.slice(0, -1)
       );
     } else if (key === "Enter") {
-      console.log(key);
+      await done();
     }
+  };
+
+  const done = async () => {
+    setUserInput((currentInput) => {
+      const trimmedInput = currentInput.trim();
+      if (!trimmedInput) {
+        return currentInput;
+      }
+
+      try {
+        db.journals.add({
+          text: trimmedInput,
+          created_at: new Date(new Date().setDate(new Date().getDate() + 3)),
+          updated_at: new Date(new Date().setDate(new Date().getDate() + 3)),
+        });
+
+        return "";
+      } catch (error) {
+        console.error("Failed to add journal entry:", error);
+        alert("An error occurred while adding the entry.");
+        return currentInput;
+      }
+    });
   };
 
   const reset = () => {
@@ -56,6 +81,7 @@ function App() {
 
   return (
     <>
+      <JournalDates />
       <div className="mask-container">
         <div className="typing-container">
           <div className="typing-text">
@@ -69,6 +95,7 @@ function App() {
           type="button"
           className="done-button"
           style={{ opacity: showButton ? 1 : 0 }}
+          onClick={done}
         >
           Done
         </button>
