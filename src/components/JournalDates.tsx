@@ -11,8 +11,9 @@ export function JournalDates() {
       new Set(
         entries.map((entry: Journal) =>
           new Date(entry.created_at).toLocaleDateString("en-US", {
-            month: "short",
+            month: "numeric",
             day: "numeric",
+            year: "numeric",
           })
         )
       )
