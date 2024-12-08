@@ -45,12 +45,23 @@
   gap: 20px;
 }
 
-.done-button {
-  transition: opacity 0.5s;
+.journal-modal-button {
+  opacity: 0;
+  padding: 0.5rem;
+  position: absolute;
+  top: 50px;
+  left: 50px;
 }
 
-.reset-button {
-  transition: opacity 0.5s;
+.journal-modal-button.visible,
+.journal-modal-button:hover,
+.journal-modal-button:focus {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menu-button-icon {
+  display: block;
 }
 
 @keyframes blink {

@@ -21,7 +21,7 @@ export function JournalDates() {
   });
 
   return (
-    <div>
+    <div className="journal-dates">
       {dates?.map((date, index) => (
         <div key={index}>{date}</div>
       ))}

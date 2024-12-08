@@ -1,12 +1,29 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { db } from "./db/db";
-import { JournalDates } from "./components/JournalDates";
+import JournalModal from "./components/JournalModal/JournalModal";
+import { FiMenu } from "react-icons/fi";
 
 function App() {
   const [userInput, setUserInput] = useState("");
   const [showButton, setShowButton] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseMove = () => {
+    setShowMenu(true);
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = setTimeout(() => {
+      setShowMenu(false);
+    }, 1000);
+  };
 
   const addKey = (key: string) => {
     setUserInput((prev) => prev + key);
@@ -65,9 +82,15 @@ function App() {
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyPress);
+    window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      window.removeEventListener("mousemove", handleMouseMove);
     };
   }, []);
 
@@ -81,7 +104,6 @@ function App() {
 
   return (
     <>
-      <JournalDates />
       <div className="mask-container">
         <div className="typing-container">
           <div className="typing-text">
@@ -95,6 +117,7 @@ function App() {
           type="button"
           className="done-button"
           style={{ opacity: showButton ? 1 : 0 }}
+          disabled={!showButton}
           onClick={done}
         >
           Done
@@ -103,11 +126,23 @@ function App() {
           type="button"
           className="reset-button"
           style={{ opacity: showButton ? 1 : 0 }}
+          disabled={!showButton}
           onClick={reset}
         >
           Reset
         </button>
       </div>
+      <button
+        className={`journal-modal-button ${
+          showMenu && !showModal ? "visible" : ""
+        }`}
+        type="button"
+        aria-label="menu"
+        onClick={() => setShowModal(true)}
+      >
+        <FiMenu size={25} className="menu-button-icon" />
+      </button>
+      <JournalModal open={showModal} onClose={() => setShowModal(false)} />
     </>
   );
 }
