@@ -1,9 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
-import { db } from "./db/db";
 import JournalModal from "./components/JournalModal/JournalModal";
-import { FiMenu } from "react-icons/fi";
+import { MenuIcon } from "lucide-react";
 
 function App() {
   const [userInput, setUserInput] = useState("");
@@ -61,11 +60,7 @@ function App() {
       }
 
       try {
-        db.journals.add({
-          text: trimmedInput,
-          created_at: new Date(new Date().setDate(new Date().getDate() + 3)),
-          updated_at: new Date(new Date().setDate(new Date().getDate() + 3)),
-        });
+        // TODO: Add journal entry to database
 
         return "";
       } catch (error) {
@@ -140,9 +135,9 @@ function App() {
         aria-label="menu"
         onClick={() => setShowModal(true)}
       >
-        <FiMenu size={25} className="menu-button-icon" />
+        <MenuIcon size={25} className="menu-button-icon" />
       </button>
-      <JournalModal open={showModal} onClose={() => setShowModal(false)} />
+      <JournalModal />
     </>
   );
 }
