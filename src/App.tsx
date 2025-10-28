@@ -1,13 +1,11 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useRef, useState } from "react";
-import "./App.css";
-import JournalModal from "./components/JournalModal/JournalModal";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { MenuIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function App() {
   const [userInput, setUserInput] = useState("");
   const [showButton, setShowButton] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -28,7 +26,7 @@ function App() {
     setUserInput((prev) => prev + key);
   };
 
-  const handleKeyPress = async (event: KeyboardEvent) => {
+  const handleKeyPress = useCallback(async (event: KeyboardEvent) => {
     const { key, ctrlKey } = event;
 
     if (key === " " || key === "Spacebar") {
@@ -50,7 +48,7 @@ function App() {
     } else if (key === "Enter") {
       await done();
     }
-  };
+  }, []);
 
   const done = async () => {
     setUserInput((currentInput) => {
@@ -87,7 +85,7 @@ function App() {
       }
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, []);
+  }, [handleKeyPress]);
 
   useEffect(() => {
     if (userInput.length > 0) {
@@ -98,47 +96,59 @@ function App() {
   }, [userInput]);
 
   return (
-    <>
-      <div className="mask-container">
-        <div className="typing-container">
-          <div className="typing-text">
+    <div className="flex flex-col items-center justify-center h-screen">
+      <div className="w-[500px] text-center">
+        <div className="relative max-w-[500px] overflow-hidden whitespace-nowrap inline-block p-[5px]">
+          <div
+            className="text-[4rem] inline-block transition-all duration-300 ease-out"
+            style={{
+              transform: `translateX(calc(min(0px, 500px - 100%)))`,
+            }}
+          >
             {userInput}
-            <span id="cursor">|</span>
+            <span
+              className="text-[#3f85e8] animate-pulse"
+              style={{ fontSize: "inherit" }}
+            >
+              |
+            </span>
           </div>
         </div>
       </div>
-      <div className="button-container">
-        <button
-          type="button"
-          className="done-button"
+
+      <div className="flex flex-row gap-5">
+        <Button
+          variant="default"
+          className="transition-opacity duration-300"
           style={{ opacity: showButton ? 1 : 0 }}
           disabled={!showButton}
           onClick={done}
         >
           Done
-        </button>
-        <button
-          type="button"
-          className="reset-button"
+        </Button>
+        <Button
+          variant="outline"
+          className="transition-opacity duration-300"
           style={{ opacity: showButton ? 1 : 0 }}
           disabled={!showButton}
           onClick={reset}
         >
           Reset
-        </button>
+        </Button>
       </div>
-      <button
-        className={`journal-modal-button ${
-          showMenu && !showModal ? "visible" : ""
-        }`}
-        type="button"
-        aria-label="menu"
-        onClick={() => setShowModal(true)}
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          "absolute top-[50px] left-[50px] p-2 transition-opacity duration-300",
+          showMenu ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setShowMenu(!showMenu)}
       >
-        <MenuIcon size={25} className="menu-button-icon" />
-      </button>
-      <JournalModal />
-    </>
+        <MenuIcon size={25} className="block" />
+      </Button>
+    </div>
   );
 }
 
