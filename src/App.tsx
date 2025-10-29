@@ -19,20 +19,20 @@ function App() {
   return (
     <ThemeProvider>
       <SidebarProvider defaultOpen={false}>
-        <AppSidebar variant="floating" />
-        <SidebarInset>
-          <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4">
-            <SidebarTrigger />
-            <ModeToggle className="ml-auto" variant="ghost" />
-          </header>
-          <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <AppSidebar variant="floating" />
+          <SidebarInset>
+            <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4">
+              <SidebarTrigger />
+              <ModeToggle className="ml-auto" variant="ghost" />
+            </header>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/:date" element={<Details />} />
             </Routes>
-          </BrowserRouter>
-        </SidebarInset>
-        <Toaster position={isMobile ? "top-center" : "bottom-right"} />
+          </SidebarInset>
+          <Toaster position={isMobile ? "top-center" : "bottom-right"} />
+        </BrowserRouter>
       </SidebarProvider>
     </ThemeProvider>
   );
