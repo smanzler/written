@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { db } from "@/lib/db";
 
 function Index() {
   const [userInput, setUserInput] = useState<string>("");
@@ -13,8 +14,12 @@ function Index() {
     if (!trimmedInput) return;
 
     try {
-      // TODO: Add journal entry to database
-      console.log(trimmedInput);
+      await db.journals.add({
+        title: trimmedInput,
+        content: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
       toast.success("Journal entry added successfully");
       setUserInput("");
     } catch (error) {

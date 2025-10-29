@@ -13,46 +13,39 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { BookOpen } from "lucide-react";
+import { db } from "@/lib/db";
+import { useLiveQuery } from "dexie-react-hooks";
 
 const BASE_URL = "/written/";
 
-interface SidebarItem {
-  title: string;
-  items: SidebarGroupItem[];
-}
-
-interface SidebarGroupItem {
-  title: string;
-  url: string;
-  isActive?: boolean;
-}
-
-const data: { navMain: SidebarItem[] } = {
-  navMain: [
-    {
-      title: "Journal",
-      items: [
-        {
-          title: "Today",
-          url: "today",
-        },
-        {
-          title: "Yesterday",
-          url: "yesterday",
-        },
-      ],
-    },
-  ],
-};
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const journals = useLiveQuery(async () => {
+    const journalsArray = await db.journals
+      .orderBy("createdAt")
+      .reverse()
+      .toArray();
+    // Group journals by date string (YYYY-MM-DD)
+    const data = journalsArray.reduce((grouped, journal) => {
+      const date =
+        journal.createdAt instanceof Date
+          ? journal.createdAt.toISOString().slice(0, 10)
+          : new Date(journal.createdAt).toISOString().slice(0, 10);
+      if (!grouped.includes(date)) {
+        grouped.push(date);
+      }
+      return grouped;
+    }, [] as string[]);
+
+    return data;
+  });
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
         <VersionSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup key="new-journal">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={false}>
@@ -64,22 +57,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        {data.navMain.map((item) => (
-          <SidebarGroup key={item.title}>
-            <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {item.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={item.isActive}>
-                      <a href={`${BASE_URL}${item.url}`}>{item.title}</a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        <SidebarGroup key="journals">
+          <SidebarGroupLabel>Journals</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {journals?.map((date) => (
+                <SidebarMenuItem key={date}>
+                  <SidebarMenuButton asChild isActive={false}>
+                    <a href={`${BASE_URL}${date}`}>{date}</a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
