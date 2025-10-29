@@ -15,8 +15,7 @@ import {
 import { BookOpen } from "lucide-react";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
-
-const BASE_URL = "/written/";
+import { BASE_URL } from "@/App";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const journals = useLiveQuery(async () => {

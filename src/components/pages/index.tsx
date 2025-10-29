@@ -15,8 +15,8 @@ function Index() {
 
     try {
       await db.journals.add({
-        title: trimmedInput,
-        content: "",
+        title: "",
+        content: trimmedInput,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
