@@ -28,10 +28,6 @@ const Details = () => {
       .toArray();
   });
 
-  console.log(journals);
-
-  console.log(date);
-
   if (!journals) return null;
 
   if (!date || !journals || journals.length === 0)
@@ -57,7 +53,7 @@ const Details = () => {
     );
 
   return (
-    <div className="px-4 flex flex-col gap-4 min-w-xl mx-auto">
+    <div className="px-4 flex flex-col gap-6 max-w-md mx-auto">
       <h1 className="text-2xl font-bold">
         {new Date(date).toLocaleDateString("en-US", {
           year: "numeric",
@@ -69,10 +65,10 @@ const Details = () => {
         {journals?.map((journal) => (
           <div key={journal.id} className="space-y-2">
             <Label className="text-muted-foreground">
-              {journal.createdAt.toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
+              {journal.createdAt.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
               })}
             </Label>
             <p className="text-sm">{journal.content}</p>
