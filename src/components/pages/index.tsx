@@ -80,12 +80,17 @@ function Index() {
           }}
         >
           {userInput}
-          <span className="bg-blue-500 animate-pulse w-1 h-16 ml-1 rounded-full" />
+          <motion.span
+            animate={{ opacity: [1, 0.4, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="bg-blue-500 w-1 h-16 ml-1 rounded-full"
+          />
         </motion.div>
       </div>
 
       <div className="flex flex-row gap-2 mt-4">
         <motion.div
+          initial={{ opacity: 0 }}
           animate={{
             opacity: userInput.split(" ").length > 1 ? 1 : 0,
           }}
@@ -96,6 +101,7 @@ function Index() {
           </Button>
         </motion.div>
         <motion.div
+          initial={{ opacity: 0 }}
           animate={{
             opacity: userInput.split(" ").length > 1 ? 1 : 0,
           }}

@@ -12,10 +12,12 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { BookOpen } from "lucide-react";
+
+const BASE_URL = "/written/";
 
 interface SidebarItem {
   title: string;
-  url: string;
   items: SidebarGroupItem[];
 }
 
@@ -29,15 +31,14 @@ const data: { navMain: SidebarItem[] } = {
   navMain: [
     {
       title: "Journal",
-      url: "#",
       items: [
         {
           title: "Today",
-          url: "#",
+          url: "today",
         },
         {
           title: "Yesterday",
-          url: "#",
+          url: "yesterday",
         },
       ],
     },
@@ -51,6 +52,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <VersionSwitcher />
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={false}>
+                <a href={BASE_URL}>
+                  <BookOpen className="size-4" />
+                  <span>New Journal</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
         {data.navMain.map((item) => (
           <SidebarGroup key={item.title}>
             <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
@@ -59,7 +72,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {item.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={item.isActive}>
-                      <a href={item.url}>{item.title}</a>
+                      <a href={`${BASE_URL}${item.url}`}>{item.title}</a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
