@@ -13,9 +13,9 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { BookOpen } from "lucide-react";
+import { Link } from "react-router";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BASE_URL } from "@/App";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const journals = useLiveQuery(async () => {
@@ -48,10 +48,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={false}>
-                <a href={BASE_URL}>
+                <Link to="/">
                   <BookOpen className="size-4" />
                   <span>New Journal</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -63,7 +63,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               {journals?.map((date) => (
                 <SidebarMenuItem key={date}>
                   <SidebarMenuButton asChild isActive={false}>
-                    <a href={`${BASE_URL}${date}`}>{date}</a>
+                    <Link to={`/${date}`}>{date}</Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

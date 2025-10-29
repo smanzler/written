@@ -9,7 +9,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "../ui/empty";
-import { BASE_URL } from "@/App";
 import { Button } from "../ui/button";
 import { ArrowLeft, BookOpen } from "lucide-react";
 
@@ -43,7 +42,7 @@ const Details = () => {
         </EmptyDescription>
         <EmptyContent>
           <Button asChild>
-            <Link to={BASE_URL}>
+            <Link to="/">
               <ArrowLeft />
               Go back
             </Link>

@@ -13,8 +13,6 @@ import { BrowserRouter, Route } from "react-router";
 import { Routes } from "react-router";
 import Details from "./components/pages/details";
 
-export const BASE_URL = "/written/";
-
 function App() {
   const isMobile = useIsMobile();
 
@@ -27,10 +25,10 @@ function App() {
             <SidebarTrigger />
             <ModeToggle className="ml-auto" variant="ghost" />
           </header>
-          <BrowserRouter>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
             <Routes>
-              <Route path={BASE_URL} element={<Index />} />
-              <Route path={`${BASE_URL}:date`} element={<Details />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/:date" element={<Details />} />
             </Routes>
           </BrowserRouter>
         </SidebarInset>
