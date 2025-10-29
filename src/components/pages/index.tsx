@@ -1,12 +1,18 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { motion } from "motion/react";
 
 function Index() {
-  const [userInput, setUserInput] = useState("");
+  const [userInput, setUserInput] = useState<string>("");
+  const [translateX, setTranslateX] = useState(0);
   const textRef = useRef<HTMLDivElement>(null);
+  const containerWidth = 0;
 
   const addKey = (key: string) => {
-    setUserInput((prev) => prev + key);
+    setUserInput((prev) => {
+      if (!prev) return key;
+      return prev + key;
+    });
   };
 
   const handleKeyPress = useCallback(async (event: KeyboardEvent) => {
@@ -17,6 +23,7 @@ function Index() {
       addKey(" ");
     } else if (ctrlKey && key === "Backspace") {
       setUserInput((prev) => {
+        if (!prev) return "";
         const trimmed = prev.trimEnd();
         const updated = trimmed.split(" ").slice(0, -1).join(" ");
         return updated.length > 0 ? updated + " " : updated;
@@ -24,7 +31,10 @@ function Index() {
     } else if (key.length === 1) {
       addKey(key);
     } else if (key === "Backspace") {
-      setUserInput((prev) => prev.slice(0, -1));
+      setUserInput((prev) => {
+        if (!prev) return "";
+        return prev.slice(0, -1);
+      });
     } else if (key === "Enter") {
       await done();
     }
@@ -32,6 +42,7 @@ function Index() {
 
   const done = async () => {
     setUserInput((currentInput) => {
+      if (!currentInput) return "";
       const trimmedInput = currentInput.trim();
       if (!trimmedInput) {
         return currentInput;
@@ -54,7 +65,10 @@ function Index() {
 
   useEffect(() => {
     if (textRef.current) {
-      textRef.current.scrollLeft = textRef.current.scrollWidth;
+      const width = textRef.current.scrollWidth;
+      const translate = !userInput ? 0 : Math.min(0, containerWidth - width);
+      setTranslateX(translate);
+      textRef.current.scrollLeft = width;
     }
   }, [userInput]);
 
@@ -65,16 +79,17 @@ function Index() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <div className="relative w-[300px] overflow-hidden">
-        <div
+      <div className="relative w-0 whitespace-nowrap text-center">
+        <motion.div
           ref={textRef}
-          className="flex items-center whitespace-nowrap overflow-x-hidden scrollbar-none"
+          className="text-[4rem] inline-flex items-center h-24"
+          initial={{ x: 0 }}
+          animate={{ x: translateX }}
+          transition={{ type: "spring", stiffness: 100, damping: 20 }}
         >
-          <div className="text-[3rem] leading-none">{userInput}</div>
-          <div className="w-[4px] h-[2.5rem] bg-blue-500 ml-1 animate-blink flex-shrink-0" />
-        </div>
-
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background to-transparent" />
+          {userInput}
+          <span className="bg-blue-500 animate-pulse w-1 h-16 ml-1 rounded-full" />
+        </motion.div>
       </div>
 
       <div className="flex flex-row gap-2 mt-4">
