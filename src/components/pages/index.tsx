@@ -1,52 +1,53 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 
 function Index() {
   const [userInput, setUserInput] = useState<string>("");
   const [translateX, setTranslateX] = useState(0);
   const textRef = useRef<HTMLDivElement>(null);
 
-  const handleKeyPress = useCallback(async (event: KeyboardEvent) => {
-    const { key, ctrlKey } = event;
+  const done = useCallback(async () => {
+    const trimmedInput = userInput.trim();
+    if (!trimmedInput) return;
 
-    if (key === " " || key === "Spacebar") {
-      event.preventDefault();
-      setUserInput((prev) => (prev.endsWith(" ") ? prev : prev + " "));
-    } else if (ctrlKey && key === "Backspace") {
-      setUserInput((prev) => {
-        const trimmed = prev.trimEnd();
-        const updated = trimmed.split(" ").slice(0, -1).join(" ");
-        return updated;
-      });
-    } else if (key.length === 1) {
-      setUserInput((prev) => prev + key);
-    } else if (key === "Backspace") {
-      setUserInput((prev) => {
-        return prev.slice(0, -1);
-      });
-    } else if (key === "Enter") {
-      await done();
+    try {
+      // TODO: Add journal entry to database
+      console.log(trimmedInput);
+      toast.success("Journal entry added successfully");
+      setUserInput("");
+    } catch (error) {
+      console.error("Failed to add journal entry:", error);
+      toast.error("Failed to add journal entry");
     }
-  }, []);
+  }, [userInput]);
 
-  const done = async () => {
-    setUserInput((currentInput) => {
-      const trimmedInput = currentInput.trim();
-      if (!trimmedInput) {
-        return currentInput;
-      }
+  const handleKeyPress = useCallback(
+    async (event: KeyboardEvent) => {
+      const { key, ctrlKey } = event;
 
-      try {
-        // TODO: Add journal entry to database
-        return "";
-      } catch (error) {
-        console.error("Failed to add journal entry:", error);
-        alert("An error occurred while adding the entry.");
-        return currentInput;
+      if (key === " " || key === "Spacebar") {
+        event.preventDefault();
+        setUserInput((prev) => (prev.endsWith(" ") ? prev : prev + " "));
+      } else if (ctrlKey && key === "Backspace") {
+        setUserInput((prev) => {
+          const trimmed = prev.trimEnd();
+          const updated = trimmed.split(" ").slice(0, -1).join(" ");
+          return updated;
+        });
+      } else if (key.length === 1) {
+        setUserInput((prev) => prev + key);
+      } else if (key === "Backspace") {
+        setUserInput((prev) => {
+          return prev.slice(0, -1);
+        });
+      } else if (key === "Enter") {
+        await done();
       }
-    });
-  };
+    },
+    [done]
+  );
 
   const reset = () => {
     setUserInput("");

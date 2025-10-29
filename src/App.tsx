@@ -7,8 +7,12 @@ import { AppSidebar } from "./components/app-sidebar";
 import Index from "./components/pages/index";
 import { ThemeProvider } from "./components/theme-provider";
 import { ModeToggle } from "./components/mode-toggle";
+import { Toaster } from "./components/ui/sonner";
+import { useIsMobile } from "./hooks/use-mobile";
 
 function App() {
+  const isMobile = useIsMobile();
+
   return (
     <ThemeProvider>
       <SidebarProvider defaultOpen={false}>
@@ -20,6 +24,7 @@ function App() {
           </header>
           <Index />
         </SidebarInset>
+        <Toaster position={isMobile ? "top-center" : "bottom-right"} />
       </SidebarProvider>
     </ThemeProvider>
   );
