@@ -1,26 +1,23 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { MenuIcon } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "./components/ui/sidebar";
+import { AppSidebar } from "./components/app-sidebar";
+import { Separator } from "@radix-ui/react-separator";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "./components/ui/breadcrumb";
 
 function App() {
   const [userInput, setUserInput] = useState("");
-  const [showButton, setShowButton] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleMouseMove = () => {
-    setShowMenu(true);
-
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    timerRef.current = setTimeout(() => {
-      setShowMenu(false);
-    }, 1000);
-  };
 
   const addKey = (key: string) => {
     setUserInput((prev) => prev + key);
@@ -34,7 +31,6 @@ function App() {
       addKey(key);
     } else if (ctrlKey && key === "Backspace") {
       setUserInput((prev) => {
-        if (prev[prev.length - 1] === " ") return prev;
         const trimmed = prev.trimEnd();
         const updated = trimmed.split(" ").slice(0, -1).join(" ");
         return updated.length > 0 ? updated + " " : updated;
@@ -42,9 +38,7 @@ function App() {
     } else if (key.length === 1) {
       addKey(key);
     } else if (key === "Backspace") {
-      setUserInput((prev) =>
-        prev[prev.length - 1] === " " ? prev : prev.slice(0, -1)
-      );
+      setUserInput((prev) => prev.slice(0, -1));
     } else if (key === "Enter") {
       await done();
     }
@@ -75,80 +69,75 @@ function App() {
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyPress);
-    window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
-
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [handleKeyPress]);
 
-  useEffect(() => {
-    if (userInput.length > 0) {
-      setShowButton(true);
-    } else {
-      setShowButton(false);
-    }
-  }, [userInput]);
-
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <div className="w-[500px] text-center">
-        <div className="relative max-w-[500px] overflow-hidden whitespace-nowrap inline-block p-[5px]">
-          <div
-            className="text-[4rem] inline-block transition-all duration-300 ease-out"
-            style={{
-              transform: `translateX(calc(min(0px, 500px - 100%)))`,
-            }}
-          >
-            {userInput}
-            <span
-              className="text-[#3f85e8] animate-pulse"
-              style={{ fontSize: "inherit" }}
+    <SidebarProvider>
+      <AppSidebar variant="floating" />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator
+            orientation="vertical"
+            className="mr-2 data-[orientation=vertical]:h-4"
+          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="#">
+                  Building Your Application
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </header>
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="w-[500px] text-center">
+            <div className="relative max-w-[500px] overflow-hidden whitespace-nowrap inline-block p-[5px]">
+              <div
+                className="text-[4rem] inline-block transition-all duration-300 ease-out"
+                style={{
+                  transform: `translateX(calc(min(0px, 500px - 100%)))`,
+                }}
+              >
+                {userInput}
+                <span
+                  className="text-[#3f85e8] animate-pulse"
+                  style={{ fontSize: "inherit" }}
+                >
+                  |
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-row gap-5">
+            <Button
+              variant="default"
+              className="transition-opacity duration-300"
+              onClick={done}
             >
-              |
-            </span>
+              Done
+            </Button>
+            <Button
+              variant="outline"
+              className="transition-opacity duration-300"
+              onClick={reset}
+            >
+              Reset
+            </Button>
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-row gap-5">
-        <Button
-          variant="default"
-          className="transition-opacity duration-300"
-          style={{ opacity: showButton ? 1 : 0 }}
-          disabled={!showButton}
-          onClick={done}
-        >
-          Done
-        </Button>
-        <Button
-          variant="outline"
-          className="transition-opacity duration-300"
-          style={{ opacity: showButton ? 1 : 0 }}
-          disabled={!showButton}
-          onClick={reset}
-        >
-          Reset
-        </Button>
-      </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(
-          "absolute top-[50px] left-[50px] p-2 transition-opacity duration-300",
-          showMenu ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}
-        onClick={() => setShowMenu(!showMenu)}
-      >
-        <MenuIcon size={25} className="block" />
-      </Button>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 
