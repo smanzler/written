@@ -8,31 +8,22 @@ function Index() {
   const textRef = useRef<HTMLDivElement>(null);
   const containerWidth = 0;
 
-  const addKey = (key: string) => {
-    setUserInput((prev) => {
-      if (!prev) return key;
-      return prev + key;
-    });
-  };
-
   const handleKeyPress = useCallback(async (event: KeyboardEvent) => {
     const { key, ctrlKey } = event;
 
     if (key === " " || key === "Spacebar") {
       event.preventDefault();
-      addKey(" ");
+      setUserInput((prev) => (prev.endsWith(" ") ? prev : prev + " "));
     } else if (ctrlKey && key === "Backspace") {
       setUserInput((prev) => {
-        if (!prev) return "";
         const trimmed = prev.trimEnd();
         const updated = trimmed.split(" ").slice(0, -1).join(" ");
         return updated.length > 0 ? updated + " " : updated;
       });
     } else if (key.length === 1) {
-      addKey(key);
+      setUserInput((prev) => prev + key);
     } else if (key === "Backspace") {
       setUserInput((prev) => {
-        if (!prev) return "";
         return prev.slice(0, -1);
       });
     } else if (key === "Enter") {
@@ -42,7 +33,6 @@ function Index() {
 
   const done = async () => {
     setUserInput((currentInput) => {
-      if (!currentInput) return "";
       const trimmedInput = currentInput.trim();
       if (!trimmedInput) {
         return currentInput;
@@ -68,7 +58,6 @@ function Index() {
       const width = textRef.current.scrollWidth;
       const translate = !userInput ? 0 : Math.min(0, containerWidth - width);
       setTranslateX(translate);
-      textRef.current.scrollLeft = width;
     }
   }, [userInput]);
 
@@ -82,10 +71,14 @@ function Index() {
       <div className="relative w-0 whitespace-nowrap text-center">
         <motion.div
           ref={textRef}
-          className="text-[4rem] inline-flex items-center h-24"
+          className="text-[4rem] inline-flex items-center h-24 whitespace-pre"
           initial={{ x: 0 }}
           animate={{ x: translateX }}
-          transition={{ type: "spring", stiffness: 100, damping: 20 }}
+          transition={{
+            type: "spring",
+            stiffness: 100,
+            damping: 20,
+          }}
         >
           {userInput}
           <span className="bg-blue-500 animate-pulse w-1 h-16 ml-1 rounded-full" />
