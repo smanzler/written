@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 
 function Index() {
   const [userInput, setUserInput] = useState("");
+  const textRef = useRef<HTMLDivElement>(null);
 
   const addKey = (key: string) => {
     setUserInput((prev) => prev + key);
@@ -13,7 +14,7 @@ function Index() {
 
     if (key === " " || key === "Spacebar") {
       event.preventDefault();
-      addKey(key);
+      addKey(" ");
     } else if (ctrlKey && key === "Backspace") {
       setUserInput((prev) => {
         const trimmed = prev.trimEnd();
@@ -38,7 +39,6 @@ function Index() {
 
       try {
         // TODO: Add journal entry to database
-
         return "";
       } catch (error) {
         console.error("Failed to add journal entry:", error);
@@ -53,47 +53,35 @@ function Index() {
   };
 
   useEffect(() => {
-    window.addEventListener("keydown", handleKeyPress);
+    if (textRef.current) {
+      textRef.current.scrollLeft = textRef.current.scrollWidth;
+    }
+  }, [userInput]);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyPress);
-    };
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [handleKeyPress]);
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <div className="w-[500px] text-center">
-        <div className="relative max-w-[500px] overflow-hidden whitespace-nowrap inline-block p-[5px]">
-          <div
-            className="text-[4rem] inline-block transition-all duration-300 ease-out"
-            style={{
-              transform: `translateX(calc(min(0px, 500px - 100%)))`,
-            }}
-          >
-            {userInput}
-            <span
-              className="text-[#3f85e8] animate-pulse"
-              style={{ fontSize: "inherit" }}
-            >
-              |
-            </span>
-          </div>
+      <div className="relative w-[300px] overflow-hidden">
+        <div
+          ref={textRef}
+          className="flex items-center whitespace-nowrap overflow-x-hidden scrollbar-none"
+        >
+          <div className="text-[3rem] leading-none">{userInput}</div>
+          <div className="w-[4px] h-[2.5rem] bg-blue-500 ml-1 animate-blink flex-shrink-0" />
         </div>
+
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background to-transparent" />
       </div>
 
-      <div className="flex flex-row gap-5">
-        <Button
-          variant="default"
-          className="transition-opacity duration-300"
-          onClick={done}
-        >
+      <div className="flex flex-row gap-2 mt-4">
+        <Button variant="default" onClick={done}>
           Done
         </Button>
-        <Button
-          variant="outline"
-          className="transition-opacity duration-300"
-          onClick={reset}
-        >
+        <Button variant="outline" onClick={reset}>
           Reset
         </Button>
       </div>

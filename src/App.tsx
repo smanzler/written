@@ -14,7 +14,7 @@ function App() {
       <SidebarProvider defaultOpen={false}>
         <AppSidebar variant="floating" />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 px-4">
+          <header className="absolute top-0 w-full flex h-16 shrink-0 items-center gap-2 px-4">
             <SidebarTrigger />
             <ModeToggle className="ml-auto" variant="ghost" />
           </header>
