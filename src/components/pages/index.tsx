@@ -66,7 +66,7 @@ function Index() {
   }, [handleKeyPress]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full">
+    <div className="flex flex-col items-center justify-center h-full overflow-hidden">
       <div className="relative w-0 whitespace-nowrap text-center">
         <motion.div
           ref={textRef}
@@ -84,12 +84,26 @@ function Index() {
       </div>
 
       <div className="flex flex-row gap-2 mt-4">
-        <Button variant="default" onClick={done}>
-          Done
-        </Button>
-        <Button variant="outline" onClick={reset}>
-          Reset
-        </Button>
+        <motion.div
+          animate={{
+            opacity: userInput.split(" ").length > 1 ? 1 : 0,
+          }}
+          transition={{ duration: 1 }}
+        >
+          <Button variant="default" onClick={done}>
+            Done
+          </Button>
+        </motion.div>
+        <motion.div
+          animate={{
+            opacity: userInput.split(" ").length > 1 ? 1 : 0,
+          }}
+          transition={{ duration: 1 }}
+        >
+          <Button variant="outline" onClick={reset}>
+            Reset
+          </Button>
+        </motion.div>
       </div>
     </div>
   );
