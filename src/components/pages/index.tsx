@@ -6,7 +6,6 @@ function Index() {
   const [userInput, setUserInput] = useState<string>("");
   const [translateX, setTranslateX] = useState(0);
   const textRef = useRef<HTMLDivElement>(null);
-  const containerWidth = 0;
 
   const handleKeyPress = useCallback(async (event: KeyboardEvent) => {
     const { key, ctrlKey } = event;
@@ -18,7 +17,7 @@ function Index() {
       setUserInput((prev) => {
         const trimmed = prev.trimEnd();
         const updated = trimmed.split(" ").slice(0, -1).join(" ");
-        return updated.length > 0 ? updated + " " : updated;
+        return updated;
       });
     } else if (key.length === 1) {
       setUserInput((prev) => prev + key);
@@ -56,7 +55,7 @@ function Index() {
   useEffect(() => {
     if (textRef.current) {
       const width = textRef.current.scrollWidth;
-      const translate = !userInput ? 0 : Math.min(0, containerWidth - width);
+      const translate = -width;
       setTranslateX(translate);
     }
   }, [userInput]);
@@ -72,7 +71,6 @@ function Index() {
         <motion.div
           ref={textRef}
           className="text-[4rem] inline-flex items-center h-24 whitespace-pre"
-          initial={{ x: 0 }}
           animate={{ x: translateX }}
           transition={{
             type: "spring",
