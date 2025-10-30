@@ -23,7 +23,7 @@ function App() {
           <AppSidebar collapsible="icon" />
           <SidebarInset>
             <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4 sticky top-0 bg-background">
-              <SidebarTrigger />
+              {isMobile && <SidebarTrigger />}
               <ModeToggle className="ml-auto" variant="ghost" />
             </header>
             <Routes>

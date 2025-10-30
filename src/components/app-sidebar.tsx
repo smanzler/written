@@ -1,5 +1,4 @@
 import * as React from "react";
-import { VersionSwitcher } from "./version-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -14,15 +13,20 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { NotebookPen } from "lucide-react";
+import { BookOpen, NotebookPen, SidebarOpen } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { NavUser } from "./nav-user";
+import { useState } from "react";
+import { motion } from "motion/react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
-  const { setOpen, setOpenMobile } = useSidebar();
+  const { open, setOpen, setOpenMobile, toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
+  const [isHovered, setIsHovered] = useState(false);
 
   const journals = useLiveQuery(async () => {
     const journalsArray = await db.journals
@@ -105,10 +109,48 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     });
   };
 
+  const renderIcon = () => {
+    return (
+      <div className="relative size-4">
+        <motion.div
+          className="absolute inset-0"
+          aria-hidden={isHovered}
+          animate={{ opacity: isHovered ? 0 : 1 }}
+          transition={{ duration: 0.15, ease: "easeInOut" }}
+        >
+          <BookOpen className="size-4" />
+        </motion.div>
+        <motion.div
+          className="absolute inset-0"
+          aria-hidden={!isHovered}
+          animate={{ opacity: isHovered ? 1 : 0 }}
+          transition={{ duration: 0.15, ease: "easeInOut" }}
+        >
+          <SidebarOpen className="size-4" />
+        </motion.div>
+      </div>
+    );
+  };
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <VersionSwitcher />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className="w-auto"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              onClick={toggleSidebar}
+            >
+              {isMobile || open ? (
+                <BookOpen className="size-4" />
+              ) : (
+                renderIcon()
+              )}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className="overflow-hidden">
         <SidebarGroup key="new-journal">
