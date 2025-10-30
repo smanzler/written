@@ -12,7 +12,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { BookOpen } from "lucide-react";
+import { NotebookPen } from "lucide-react";
 import { Link } from "react-router";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -110,7 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={false}>
                 <Link to="/">
-                  <BookOpen className="size-4" />
+                  <NotebookPen className="size-4" />
                   <span>New Journal</span>
                 </Link>
               </SidebarMenuButton>

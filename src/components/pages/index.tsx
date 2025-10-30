@@ -89,7 +89,11 @@ function Index() {
               key={index}
               initial={{ opacity: 1 }}
               animate={{ opacity: 0 }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
+              transition={{
+                duration: 0.5,
+                ease: "easeInOut",
+                delay: 0.2,
+              }}
             >
               {char}
             </motion.span>
