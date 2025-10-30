@@ -38,10 +38,60 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return data;
   });
 
+  const isToday = (date: Date) => {
+    const now = new Date();
+    return (
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate()
+    );
+  };
+
+  const isYesterday = (date: Date) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return (
+      date.getFullYear() === yesterday.getFullYear() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getDate() === yesterday.getDate()
+    );
+  };
+
+  const isThisWeek = (date: Date) => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    return (
+      date >= startOfWeek &&
+      date <= endOfWeek &&
+      !isToday(date) &&
+      !isYesterday(date)
+    );
+  };
+
   const getFormattedDate = (date: string) => {
     const [year, month, day] = date.split("-").map(Number);
     if (isNaN(year) || isNaN(month) || isNaN(day)) return date;
     const dateObject = new Date(year, month - 1, day);
+
+    if (isToday(dateObject)) {
+      return "Today";
+    }
+
+    if (isYesterday(dateObject)) {
+      return "Yesterday";
+    }
+
+    if (isThisWeek(dateObject)) {
+      return dateObject.toLocaleDateString("en-US", {
+        weekday: "long",
+      });
+    }
+
     return dateObject.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
