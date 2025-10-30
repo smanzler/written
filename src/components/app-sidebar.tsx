@@ -3,6 +3,7 @@ import { VersionSwitcher } from "./version-switcher";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -13,11 +14,14 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { NotebookPen } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
+import { NavUser } from "./nav-user";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { pathname } = useLocation();
+
   const journals = useLiveQuery(async () => {
     const journalsArray = await db.journals
       .orderBy("createdAt")
@@ -104,11 +108,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <VersionSwitcher />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="overflow-hidden">
         <SidebarGroup key="new-journal">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={false}>
+              <SidebarMenuButton asChild isActive={pathname === "/"}>
                 <Link to="/">
                   <NotebookPen className="size-4" />
                   <span>New Journal</span>
@@ -117,14 +121,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        <SidebarGroup key="journals">
+        <SidebarGroup
+          key="journals"
+          className="group-data-[collapsible=icon]:hidden"
+        >
           <SidebarGroupLabel>Journals</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {journals?.map((date) => (
                 <SidebarMenuItem key={date}>
-                  <SidebarMenuButton asChild isActive={false}>
-                    <Link to={`/${date}`}>{getFormattedDate(date)}</Link>
+                  <SidebarMenuButton asChild isActive={pathname === `/${date}`}>
+                    <Link
+                      to={`/${date}`}
+                      className="overflow-hidden whitespace-nowrap"
+                    >
+                      {getFormattedDate(date)}
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -132,6 +144,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
