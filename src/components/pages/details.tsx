@@ -56,7 +56,7 @@ const Details = () => {
     );
 
   return (
-    <div className="px-4 flex flex-col gap-6 w-[min(100%,448px)] mx-auto">
+    <div className="p-4 flex flex-col gap-6 w-[min(100%,800px)] mx-auto">
       <h1 className="text-2xl font-bold">
         {dateObject.toLocaleDateString("en-US", {
           year: "numeric",

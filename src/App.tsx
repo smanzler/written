@@ -22,7 +22,7 @@ function App() {
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <AppSidebar collapsible="icon" />
           <SidebarInset>
-            <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4">
+            <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4 sticky top-0 bg-background">
               <SidebarTrigger />
               <ModeToggle className="ml-auto" variant="ghost" />
             </header>

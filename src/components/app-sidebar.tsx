@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { NotebookPen } from "lucide-react";
 import { Link, useLocation } from "react-router";
@@ -21,6 +22,7 @@ import { NavUser } from "./nav-user";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
+  const { setOpen, setOpenMobile } = useSidebar();
 
   const journals = useLiveQuery(async () => {
     const journalsArray = await db.journals
@@ -113,7 +115,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === "/"}>
-                <Link to="/">
+                <Link
+                  to="/"
+                  onClick={() => {
+                    setOpen(false);
+                    setOpenMobile(false);
+                  }}
+                >
                   <NotebookPen className="size-4" />
                   <span>New Journal</span>
                 </Link>
@@ -134,6 +142,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <Link
                       to={`/${date}`}
                       className="overflow-hidden whitespace-nowrap"
+                      onClick={() => setOpenMobile(false)}
                     >
                       {getFormattedDate(date)}
                     </Link>
