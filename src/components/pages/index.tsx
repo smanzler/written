@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
+import { useSidebar } from "../ui/sidebar";
 
 function Index() {
   const [userInput, setUserInput] = useState<string>("");
   const [translateX, setTranslateX] = useState(0);
   const textRef = useRef<HTMLDivElement>(null);
+  const { open, setOpen } = useSidebar();
 
   const done = useCallback(async () => {
     const trimmedInput = userInput.trim();
@@ -32,6 +34,10 @@ function Index() {
     async (event: KeyboardEvent) => {
       const { key, ctrlKey } = event;
 
+      if (open) {
+        setOpen(false);
+      }
+
       if (key === " " || key === "Spacebar") {
         event.preventDefault();
         setUserInput((prev) => (prev.endsWith(" ") ? prev : prev + " "));
@@ -51,7 +57,7 @@ function Index() {
         await done();
       }
     },
-    [done]
+    [done, open, setOpen]
   );
 
   const reset = () => {
