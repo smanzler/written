@@ -83,7 +83,11 @@ function Index() {
         spellCheck={false}
         inputMode="text"
       />
-      <div className="relative w-0 whitespace-nowrap text-center">
+      <div
+        className="relative w-0 whitespace-nowrap text-center"
+        onTouchStart={focusInput}
+        onClick={focusInput}
+      >
         <motion.div
           ref={textRef}
           className="text-[4rem] inline-flex items-center h-24 whitespace-pre"
@@ -118,7 +122,6 @@ function Index() {
 
       <div className="flex flex-row mt-4">
         <motion.div
-          initial={{ opacity: 0 }}
           animate={{
             opacity: userInput.split(" ").length > 1 ? 1 : 0,
           }}
@@ -129,7 +132,6 @@ function Index() {
           </Button>
         </motion.div>
         <motion.div
-          initial={{ opacity: 0 }}
           animate={{
             opacity: userInput.split(" ").length > 1 ? 1 : 0,
           }}
