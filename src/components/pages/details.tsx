@@ -74,7 +74,7 @@ const Details = () => {
                 hour12: true,
               })}
             </Label>
-            <p className="text-sm">{journal.content}</p>
+            <p className="text-sm wrap-anywhere">{journal.content}</p>
           </div>
         ))}
       </div>
