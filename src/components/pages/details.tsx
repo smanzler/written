@@ -14,22 +14,26 @@ import { ArrowLeft, BookOpen } from "lucide-react";
 
 const Details = () => {
   const { date } = useParams();
+
+  const [year, month, day] = date?.split("-").map(Number) || [];
+  const dateObject =
+    year && month && day ? new Date(year, month - 1, day) : null;
+
   const journals = useLiveQuery(async () => {
-    if (!date) return [];
-    const [year, month, day] = date.split("-").map(Number);
-    if (isNaN(year) || isNaN(month) || isNaN(day)) return [];
-    const start = new Date(year, month - 1, day, 0, 0, 0, 0);
-    const end = new Date(year, month - 1, day, 23, 59, 59, 999);
-    console.log(start, end);
+    if (!dateObject || isNaN(dateObject.getTime())) return [];
+    const start = new Date(dateObject);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(dateObject);
+    end.setHours(23, 59, 59, 999);
     return await db.journals
       .where("createdAt")
       .between(start, end, true, true)
       .toArray();
-  });
+  }, [dateObject?.getTime()]);
 
   if (!journals) return null;
 
-  if (!date || !journals || journals.length === 0)
+  if (!dateObject || !journals || journals.length === 0)
     return (
       <Empty className="max-w-md mx-auto">
         <EmptyMedia variant="icon">
@@ -54,7 +58,7 @@ const Details = () => {
   return (
     <div className="px-4 flex flex-col gap-6 max-w-md mx-auto">
       <h1 className="text-2xl font-bold">
-        {new Date(date).toLocaleDateString("en-US", {
+        {dateObject.toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",

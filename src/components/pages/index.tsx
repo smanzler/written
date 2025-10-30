@@ -84,7 +84,16 @@ function Index() {
             damping: 20,
           }}
         >
-          {userInput}
+          {userInput.split("").map((char, index) => (
+            <motion.span
+              key={index}
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+            >
+              {char}
+            </motion.span>
+          ))}
           <motion.span
             animate={{ opacity: [1, 0.4, 1] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}

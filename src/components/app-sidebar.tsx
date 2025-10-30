@@ -38,6 +38,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return data;
   });
 
+  const getFormattedDate = (date: string) => {
+    const [year, month, day] = date.split("-").map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return date;
+    const dateObject = new Date(year, month - 1, day);
+    return dateObject.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -63,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               {journals?.map((date) => (
                 <SidebarMenuItem key={date}>
                   <SidebarMenuButton asChild isActive={false}>
-                    <Link to={`/${date}`}>{date}</Link>
+                    <Link to={`/${date}`}>{getFormattedDate(date)}</Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
