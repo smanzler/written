@@ -13,7 +13,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BookOpen, NotebookPen, SidebarOpen } from "lucide-react";
+import { BookOpen, History, NotebookPen, SidebarOpen } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -177,26 +177,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        <SidebarGroup
-          key="journals"
-          className="group-data-[collapsible=icon]:hidden"
-        >
+        <SidebarGroup key="journals">
           <SidebarGroupLabel>Journals</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {journals?.map((date) => (
-                <SidebarMenuItem key={date}>
-                  <SidebarMenuButton asChild isActive={pathname === `/${date}`}>
-                    <Link
-                      to={`/${date}`}
-                      className="overflow-hidden whitespace-nowrap"
-                      onClick={() => setOpenMobile(false)}
+              {journals?.map((date, index) =>
+                index === 0 && !open ? (
+                  <SidebarMenuItem key={date}>
+                    <SidebarMenuButton onClick={() => setOpen(true)}>
+                      <History className="size-4" />
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : (
+                  <SidebarMenuItem
+                    key={date}
+                    className="group-data-[collapsible=icon]:hidden"
+                  >
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === `/${date}`}
                     >
-                      {getFormattedDate(date)}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                      <Link
+                        to={`/${date}`}
+                        className="overflow-hidden whitespace-nowrap"
+                        onClick={() => setOpenMobile(false)}
+                      >
+                        {getFormattedDate(date)}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
