@@ -13,6 +13,7 @@ function Index() {
   const inputRef = useRef<HTMLInputElement>(null);
   const prevInputRef = useRef<string>("");
   const { open, setOpen } = useSidebar();
+  const [isFocused, setIsFocused] = useState(false);
 
   const typing = userInput.length > prevInputRef.current.length;
 
@@ -76,10 +77,13 @@ function Index() {
             done();
           }
         }}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         className="fixed bottom-0 left-0 w-px h-px opacity-0"
         autoCapitalize="none"
         autoComplete="off"
         autoCorrect="off"
+        autoFocus
         spellCheck={false}
         inputMode="text"
       />
@@ -113,8 +117,22 @@ function Index() {
             </motion.span>
           ))}
           <motion.span
-            animate={{ opacity: [1, 0.4, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            animate={{
+              opacity: isFocused ? [1, 0.4, 1] : 0,
+            }}
+            transition={
+              isFocused
+                ? {
+                    duration: 1,
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    ease: "easeInOut",
+                  }
+                : {
+                    duration: 0.1,
+                    ease: "easeInOut",
+                  }
+            }
             className="bg-blue-500 w-1 h-16 ml-1 rounded-full"
           />
         </motion.div>
