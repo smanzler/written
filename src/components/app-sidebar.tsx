@@ -33,14 +33,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       .orderBy("createdAt")
       .reverse()
       .toArray();
-    // Group journals by date string (YYYY-MM-DD)
+    // Group journals by date string in local timezone (YYYY-MM-DD)
     const data = journalsArray.reduce((grouped, journal) => {
-      const date =
-        journal.createdAt instanceof Date
-          ? journal.createdAt.toISOString().slice(0, 10)
-          : new Date(journal.createdAt).toISOString().slice(0, 10);
-      if (!grouped.includes(date)) {
-        grouped.push(date);
+      let dateObj: Date;
+      if (journal.createdAt instanceof Date) {
+        dateObj = journal.createdAt;
+      } else {
+        dateObj = new Date(journal.createdAt);
+      }
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      const localDate = `${year}-${month}-${day}`;
+      if (!grouped.includes(localDate)) {
+        grouped.push(localDate);
       }
       return grouped;
     }, [] as string[]);
