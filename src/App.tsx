@@ -9,7 +9,7 @@ import { ThemeProvider } from "./components/theme-provider";
 import { ModeToggle } from "./components/mode-toggle";
 import { Toaster } from "./components/ui/sonner";
 import { useIsMobile } from "./hooks/use-mobile";
-import { BrowserRouter, Route } from "react-router";
+import { HashRouter, Route } from "react-router";
 import { Routes } from "react-router";
 import Details from "./components/pages/details";
 
@@ -19,7 +19,7 @@ function App() {
   return (
     <ThemeProvider>
       <SidebarProvider defaultOpen={false}>
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <HashRouter>
           <AppSidebar collapsible="icon" />
           <SidebarInset>
             <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4 sticky top-0 bg-background">
@@ -32,7 +32,7 @@ function App() {
             </Routes>
           </SidebarInset>
           <Toaster position={isMobile ? "top-center" : "bottom-right"} />
-        </BrowserRouter>
+        </HashRouter>
       </SidebarProvider>
     </ThemeProvider>
   );
