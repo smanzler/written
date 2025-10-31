@@ -1,5 +1,3 @@
-import { db } from "@/lib/db";
-import { useLiveQuery } from "dexie-react-hooks";
 import { Label } from "../ui/label";
 import { Link, useParams } from "react-router";
 import {
@@ -11,6 +9,7 @@ import {
 } from "../ui/empty";
 import { Button } from "../ui/button";
 import { ArrowLeft, BookOpen } from "lucide-react";
+import { useJournalsByDate } from "@/dexie/journals/queries";
 
 const Details = () => {
   const { date } = useParams();
@@ -19,17 +18,7 @@ const Details = () => {
   const dateObject =
     year && month && day ? new Date(year, month - 1, day) : null;
 
-  const journals = useLiveQuery(async () => {
-    if (!dateObject || isNaN(dateObject.getTime())) return [];
-    const start = new Date(dateObject);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(dateObject);
-    end.setHours(23, 59, 59, 999);
-    return await db.journals
-      .where("createdAt")
-      .between(start, end, true, true)
-      .toArray();
-  }, [dateObject?.getTime()]);
+  const journals = useJournalsByDate(dateObject ?? undefined);
 
   if (!journals) return null;
 

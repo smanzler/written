@@ -15,12 +15,11 @@ import {
 } from "@/components/ui/sidebar";
 import { BookOpen, History, NotebookPen, SidebarOpen } from "lucide-react";
 import { Link, useLocation } from "react-router";
-import { db } from "@/lib/db";
-import { useLiveQuery } from "dexie-react-hooks";
 import { NavUser } from "./nav-user";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useJournalDates } from "@/dexie/journals/queries";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
@@ -28,31 +27,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const isMobile = useIsMobile();
   const [isHovered, setIsHovered] = useState(false);
 
-  const journals = useLiveQuery(async () => {
-    const journalsArray = await db.journals
-      .orderBy("createdAt")
-      .reverse()
-      .toArray();
-    // Group journals by date string in local timezone (YYYY-MM-DD)
-    const data = journalsArray.reduce((grouped, journal) => {
-      let dateObj: Date;
-      if (journal.createdAt instanceof Date) {
-        dateObj = journal.createdAt;
-      } else {
-        dateObj = new Date(journal.createdAt);
-      }
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      const localDate = `${year}-${month}-${day}`;
-      if (!grouped.includes(localDate)) {
-        grouped.push(localDate);
-      }
-      return grouped;
-    }, [] as string[]);
-
-    return data;
-  });
+  const journalDates = useJournalDates();
 
   const isToday = (date: Date) => {
     const now = new Date();
@@ -181,7 +156,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupLabel>Journals</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {journals?.map((date, index) =>
+              {journalDates?.map((date, index) =>
                 index === 0 && !open ? (
                   <SidebarMenuItem key={date}>
                     <SidebarMenuButton onClick={() => setOpen(true)}>
