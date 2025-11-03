@@ -22,8 +22,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSettings } from "@/providers/SettingsProvider";
 import { Switch } from "./ui/switch";
 import { toast } from "sonner";
-import { db } from "@/lib/db";
 import LockedDialog from "./ui/locked-dialog";
+import { Spinner } from "./ui/spinner";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -31,73 +31,40 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const [passwordDialogShown, setPasswordDialogShown] = useState(false);
   const [removeKeyDialogShown, setRemoveKeyDialogShown] = useState(false);
   const [password, setPassword] = useState("");
-  const { createPassword, encryptText, decryptText } = useJournal();
-  const [loading, setLoading] = useState(false);
+  const { enableEncryption, disableEncryption } = useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
-
-  const encryptEntries = async () => {
-    const entries = await db.journals.toArray();
-
-    const updates = await Promise.all(
-      entries.map(async (entry) => {
-        const result = await encryptText(entry.content);
-        return {
-          key: entry.id,
-          changes: { content: JSON.stringify(result) },
-        };
-      })
-    );
-
-    await db.journals.bulkUpdate(updates);
-  };
-
-  const decryptEntries = async () => {
-    const entries = await db.journals.toArray();
-
-    const updates = await Promise.all(
-      entries.map(async (entry) => {
-        const { cipher, iv } = JSON.parse(entry.content);
-        const result = await decryptText(cipher, iv);
-        return {
-          key: entry.id,
-          changes: { content: result },
-        };
-      })
-    );
-
-    await db.journals.bulkUpdate(updates);
-  };
+  const [lockLoading, setLockLoading] = useState(false);
 
   const handleSavePassword = async () => {
-    const success = await createPassword(password);
+    setLockLoading(true);
+    const success = await enableEncryption(password);
 
     if (!success) {
+      setLockLoading(false);
       setRemoveKeyDialogShown(true);
       return;
     }
 
-    await encryptEntries();
-
-    saveSettings({ lockEnabled: true });
+    await saveSettings({ lockEnabled: true });
+    setPasswordDialogShown(false);
+    setLockLoading(false);
   };
 
   const handleRemoveKey = async () => {
-    const success = await createPassword(password, true);
+    setLockLoading(true);
+    const success = await enableEncryption(password, true);
 
     if (!success) {
       toast.error("An error occured while trying to create your password");
+      setLockLoading(false);
       return;
     }
 
-    await encryptEntries();
-
-    saveSettings({ lockEnabled: true });
-
+    await saveSettings({ lockEnabled: true });
     setRemoveKeyDialogShown(false);
     setPasswordDialogShown(false);
+    setLockLoading(false);
   };
-
-  console.log(settings);
 
   const handleChangeLockEnabled = async (checked: boolean) => {
     if (checked) {
@@ -105,16 +72,15 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
       return;
     }
 
-    setLoading(true);
-    // decode all entries
+    setLockLoading(true);
     try {
-      await decryptEntries();
+      await disableEncryption();
       await saveSettings({ lockEnabled: false });
     } catch (error) {
       toast.error("An error occured while trying to unlock your journal");
       console.error(error);
     } finally {
-      setLoading(false);
+      setLockLoading(false);
     }
   };
 
@@ -134,13 +100,6 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
             onCheckedChange={handleChangeLockEnabled}
           />
 
-          <Button onClick={encryptEntries} disabled={loading}>
-            Mock Lock All
-          </Button>
-          <Button onClick={decryptEntries} disabled={loading}>
-            Mock Unlock All
-          </Button>
-
           <Label>Cursor color</Label>
           {/* color picker */}
 
@@ -155,7 +114,9 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
           </DialogHeader>
           <Input onChange={(e) => setPassword(e.target.value)} />
           <DialogFooter>
-            <Button onClick={handleSavePassword}>Save</Button>
+            <Button onClick={handleSavePassword} disabled={lockLoading}>
+              {lockLoading && <Spinner />}Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -193,7 +154,9 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
             >
               Continue without removing key
             </Button>
-            <Button onClick={handleRemoveKey}>Confirm</Button>
+            <Button onClick={handleRemoveKey} disabled={lockLoading}>
+              {lockLoading && <Spinner />}Confirm
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

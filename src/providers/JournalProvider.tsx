@@ -1,5 +1,6 @@
 import { decrypt, deriveKey, encrypt } from "@/lib/crypto";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { db } from "@/lib/db";
+import React, { createContext, useContext, useState } from "react";
 
 // helpers to encode/decode ArrayBuffers
 const toBase64 = (buf: Uint8Array<ArrayBuffer>) =>
@@ -9,15 +10,16 @@ const fromBase64 = (str: string) =>
 
 type JournalContextType = {
   isUnlocked: boolean;
-  createPassword: (password: string, force?: boolean) => Promise<boolean>;
+  enableEncryption: (password: string, force?: boolean) => Promise<boolean>;
+  disableEncryption: () => Promise<void>;
   unlock: (password: string) => Promise<boolean>;
   lock: () => void;
-  encryptText: (text: string) => Promise<{ cipher: string; iv: string }>;
-  decryptText: (cipher: string, iv: string) => Promise<string>;
+  encryptText: (
+    text: string,
+    key?: CryptoKey
+  ) => Promise<{ cipher: string; iv: string }>;
+  decryptText: (cipher: string, iv: string, key?: CryptoKey) => Promise<string>;
 };
-
-const JournalContext = createContext<JournalContextType | null>(null);
-export const useJournal = () => useContext(JournalContext)!;
 
 export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -25,7 +27,7 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
   const [masterKey, setMasterKey] = useState<CryptoKey | null>(null);
   const [isUnlocked, setUnlocked] = useState(false);
 
-  const createPassword = async (password: string, force: boolean = false) => {
+  const enableEncryption = async (password: string, force: boolean = false) => {
     const storedEncryptedMaster = localStorage.getItem("encryptedMaster");
     const storedSalt = localStorage.getItem("keySalt");
 
@@ -34,11 +36,8 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
     const newMaster = crypto.getRandomValues(new Uint8Array(32));
     const { key, salt } = await deriveKey(password);
 
-    console.log(key, salt);
-
     // encrypt master key with password key
     const { cipher, iv } = await encrypt(toBase64(newMaster), key);
-    console.log(cipher, iv);
 
     localStorage.setItem(
       "encryptedMaster",
@@ -59,14 +58,22 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setMasterKey(imported);
     setUnlocked(true);
+    await encryptEntries(imported);
     return true;
+  };
+
+  const disableEncryption = async () => {
+    await decryptEntries();
+
+    localStorage.removeItem("encryptedMaster");
+    localStorage.removeItem("keySalt");
+    setMasterKey(null);
+    setUnlocked(false);
   };
 
   async function unlock(password: string): Promise<boolean> {
     const storedEncryptedMaster = localStorage.getItem("encryptedMaster");
     const storedSalt = localStorage.getItem("keySalt");
-    console.log("storedEncryptedMaster", storedEncryptedMaster);
-    console.log("storedSalt", storedSalt);
 
     if (!storedEncryptedMaster || !storedSalt) {
       return false;
@@ -75,16 +82,13 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
     // existing user — decrypt master key
     try {
       const salt = fromBase64(storedSalt);
-      console.log("salt", salt);
       const { key } = await deriveKey(password, salt);
-      console.log("key", key);
       const { cipher, iv } = JSON.parse(storedEncryptedMaster);
       const decrypted = await decrypt(
         fromBase64(cipher).buffer,
         fromBase64(iv),
         key
       );
-      console.log("decrypted", decrypted);
       const rawMaster = fromBase64(decrypted);
 
       const imported = await crypto.subtle.importKey(
@@ -94,8 +98,6 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
         false,
         ["encrypt", "decrypt"]
       );
-
-      console.log(imported);
 
       setMasterKey(imported);
       setUnlocked(true);
@@ -111,26 +113,66 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
     setMasterKey(null);
   }
 
-  async function encryptText(text: string) {
-    if (!masterKey) throw new Error("Journal locked");
-    const { cipher, iv } = await encrypt(text, masterKey);
+  async function encryptText(text: string, key?: CryptoKey) {
+    if (!key) {
+      key = masterKey ?? undefined;
+      console.log("key is null, using master key", key);
+    }
+    if (!key) throw new Error("Journal locked");
+    console.log("encrypting with key", key);
+    const { cipher, iv } = await encrypt(text, key).catch((err) => {
+      console.error(err);
+      throw err;
+    });
     return { cipher: toBase64(new Uint8Array(cipher)), iv: toBase64(iv) };
   }
 
-  async function decryptText(cipher: string, iv: string) {
-    if (!masterKey) throw new Error("Journal locked");
-    return decrypt(fromBase64(cipher).buffer, fromBase64(iv), masterKey);
+  async function decryptText(cipher: string, iv: string, key?: CryptoKey) {
+    if (!key) key = masterKey ?? undefined;
+    if (!key) throw new Error("Journal locked");
+    return decrypt(fromBase64(cipher).buffer, fromBase64(iv), key);
   }
 
-  useEffect(() => {
-    console.log("isUnlocked from useEffect context", isUnlocked);
-  }, [isUnlocked]);
+  const encryptEntries = async (key?: CryptoKey) => {
+    console.log("encrypting");
+    const entries = await db.journals.toArray();
+
+    const updates = await Promise.all(
+      entries.map(async (entry) => {
+        const result = await encryptText(entry.content, key);
+        return {
+          key: entry.id,
+          changes: { content: JSON.stringify(result) },
+        };
+      })
+    );
+
+    await db.journals.bulkUpdate(updates);
+  };
+
+  const decryptEntries = async (key?: CryptoKey) => {
+    const entries = await db.journals.toArray();
+
+    const updates = await Promise.all(
+      entries.map(async (entry) => {
+        const { cipher, iv } = JSON.parse(entry.content);
+        const result = await decryptText(cipher, iv, key);
+        return {
+          key: entry.id,
+          changes: { content: result },
+        };
+      })
+    );
+
+    await db.journals.bulkUpdate(updates);
+  };
 
   return (
     <JournalContext.Provider
       value={{
         isUnlocked,
-        createPassword,
+        enableEncryption,
+        disableEncryption,
         unlock,
         lock,
         encryptText,
@@ -141,3 +183,7 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
     </JournalContext.Provider>
   );
 };
+
+const JournalContext = createContext<JournalContextType | null>(null);
+// eslint-disable-next-line react-refresh/only-export-components
+export const useJournal = () => useContext(JournalContext)!;

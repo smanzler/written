@@ -8,19 +8,55 @@ import {
   EmptyTitle,
 } from "../ui/empty";
 import { Button } from "../ui/button";
-import { ArrowLeft, BookOpen } from "lucide-react";
-import { useJournalsByDate } from "@/dexie/journals/queries";
+import { ArrowLeft, BookOpen, Lock } from "lucide-react";
+import { useDecryptedJournalsByDate } from "@/dexie/journals/queries";
+import { useJournal } from "@/providers/JournalProvider";
+import { useSettings } from "@/providers/SettingsProvider";
+import LockedDialog from "../ui/locked-dialog";
+import { useState } from "react";
 
 const Details = () => {
   const { date } = useParams();
+  const { isUnlocked } = useJournal();
+  const { settings } = useSettings();
+  const [openLockedDialog, setOpenLockedDialog] = useState(false);
 
   const [year, month, day] = date?.split("-").map(Number) || [];
   const dateObject =
     year && month && day ? new Date(year, month - 1, day) : null;
 
-  const journals = useJournalsByDate(dateObject ?? undefined);
+  const { journals, decrypting } = useDecryptedJournalsByDate(
+    dateObject ?? undefined
+  );
 
-  if (!journals) return null;
+  if (!isUnlocked && settings?.lockEnabled) {
+    return (
+      <>
+        <Empty className="max-w-md mx-auto">
+          <EmptyMedia variant="icon">
+            <Lock />
+          </EmptyMedia>
+          <EmptyTitle>Journal Locked</EmptyTitle>
+          <EmptyDescription>
+            Please enter your pin to view your journal
+          </EmptyDescription>
+          <EmptyContent>
+            <Button onClick={() => setOpenLockedDialog(true)}>
+              <Lock />
+              Unlock Journal
+            </Button>
+          </EmptyContent>
+        </Empty>
+
+        <LockedDialog
+          open={openLockedDialog}
+          onOpenChange={setOpenLockedDialog}
+        />
+      </>
+    );
+  }
+
+  if (!journals || decrypting) return null;
 
   if (!dateObject || !journals || journals.length === 0)
     return (

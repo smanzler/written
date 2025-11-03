@@ -45,7 +45,7 @@ function Index() {
     try {
       let content = trimmedInput;
 
-      if (!isUnlocked) {
+      if (!isUnlocked && settings?.lockEnabled) {
         inputRef.current?.blur();
         setOpenLockedDialog(true);
         return;
