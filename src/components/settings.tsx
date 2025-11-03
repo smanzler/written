@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { useJournal } from "@/providers/JournalProvider";
 import {
   Sheet,
@@ -32,6 +31,7 @@ import {
   ItemGroup,
   ItemTitle,
 } from "./ui/item";
+import PasswordOTP from "./ui/password-otp";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -44,9 +44,9 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
 
-  const handleSavePassword = async () => {
+  const handleSavePassword = async (value: string) => {
     setLockLoading(true);
-    const success = await enableEncryption(password);
+    const success = await enableEncryption(value);
 
     if (!success) {
       setLockLoading(false);
@@ -148,24 +148,22 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
       </SheetContent>
 
       <Dialog open={passwordDialogShown} onOpenChange={setPasswordDialogShown}>
-        <DialogContent>
+        <DialogContent className="w-fit">
           <DialogHeader>
             <DialogTitle>Password</DialogTitle>
             <DialogDescription>
-              Enter your password to enable encryption. This will encrypt all of
-              your journal entries.
+              Enter your password to enable encryption
             </DialogDescription>
           </DialogHeader>
-          <Input
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSavePassword();
-              }
-            }}
-          />
+          <div className="flex flex-col items-center">
+            <PasswordOTP secure={false} onChange={setPassword} />
+          </div>
           <DialogFooter>
-            <Button onClick={handleSavePassword} disabled={lockLoading}>
+            <Button
+              onClick={() => handleSavePassword(password)}
+              disabled={lockLoading}
+              className="w-full"
+            >
               {lockLoading && <Spinner />}Save
             </Button>
           </DialogFooter>

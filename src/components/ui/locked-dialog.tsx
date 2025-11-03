@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Dialog,
   DialogClose,
@@ -8,11 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./dialog";
-import { Input } from "./input";
-import { Label } from "./label";
 import { Button } from "./button";
 import { useJournal } from "@/providers/JournalProvider";
 import { toast } from "sonner";
+import PasswordOTP from "./password-otp";
 
 const LockedDialog = ({
   onOpenChange,
@@ -21,12 +20,18 @@ const LockedDialog = ({
 }: React.ComponentProps<typeof Dialog> & {
   onUnlock?: (key: CryptoKey | null) => void;
 }) => {
-  const [password, setPassword] = useState("");
-
   const { unlock } = useJournal();
 
-  const handleUnlock = async () => {
-    const key = await unlock(password);
+  const handlePasswordChange = (value: string) => {
+    console.log(value);
+    if (value.length === 6) {
+      handleUnlock(value);
+    }
+  };
+
+  const handleUnlock = async (value: string) => {
+    console.log(value);
+    const key = await unlock(value);
     if (!key) {
       toast.error("Permission denied");
       if (onUnlock) onUnlock(null);
@@ -39,31 +44,26 @@ const LockedDialog = ({
 
   return (
     <Dialog {...props} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="w-fit">
         <DialogHeader>
           <DialogTitle>Journal Locked</DialogTitle>
           <DialogDescription>
             Please enter your pin to unlock the journal
           </DialogDescription>
         </DialogHeader>
-        <Label htmlFor="pin-input">Pin</Label>
-        <Input
-          id="pin-input"
-          autoComplete="off"
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleUnlock();
-            }
-          }}
-        />
+        <div className="flex flex-col items-center">
+          <PasswordOTP onChange={handlePasswordChange} />
+        </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="secondary" onClick={() => onOpenChange?.(false)}>
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => onOpenChange?.(false)}
+            >
               Close
             </Button>
           </DialogClose>
-          <Button onClick={handleUnlock}>Unlock</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
