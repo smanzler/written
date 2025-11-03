@@ -4,8 +4,15 @@ import { useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogClose, DialogContent, DialogTrigger } from "./dialog";
-import { Card, CardContent, CardFooter } from "./card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialog";
+import { Card, CardContent, CardFooter, CardHeader } from "./card";
 
 interface ColorPickerProps {
   onSubmit: (color: string) => void;
@@ -33,6 +40,12 @@ const ColorPicker = ({ onSubmit, defaultValue }: ColorPickerProps) => {
         style={{ backgroundColor: color }}
       >
         <Card>
+          <CardHeader>
+            <DialogTitle>Color Picker</DialogTitle>
+            <DialogDescription>
+              Select a color to use in your journal.
+            </DialogDescription>
+          </CardHeader>
           <CardContent className="flex flex-col gap-4 w-full">
             <HexColorPicker color={color} onChange={setColor} />
             <Input
