@@ -23,7 +23,8 @@ import { useJournalDates } from "@/dexie/journals/queries";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
-  const { open, setOpen, setOpenMobile, toggleSidebar } = useSidebar();
+  const { open, setOpen, setOpenMobile, openMobile, toggleSidebar } =
+    useSidebar();
   const isMobile = useIsMobile();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -90,6 +91,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     });
   };
 
+  React.useEffect(() => {
+    console.log("openMobile", openMobile);
+    console.log("open", open);
+  }, [openMobile, open]);
+
   const renderIcon = () => {
     return (
       <div className="relative size-4">
@@ -104,6 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <motion.div
           className="absolute inset-0"
           aria-hidden={!isHovered}
+          initial={{ opacity: 0 }}
           animate={{ opacity: isHovered ? 1 : 0 }}
           transition={{ duration: 0.15, ease: "easeInOut" }}
         >
@@ -124,7 +131,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               onMouseLeave={() => setIsHovered(false)}
               onClick={toggleSidebar}
             >
-              {isMobile || open ? (
+              {isMobile || open || openMobile ? (
                 <BookOpen className="size-4" />
               ) : (
                 renderIcon()
@@ -157,7 +164,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               {journalDates?.map((date, index) =>
-                index === 0 && !open ? (
+                index === 0 && !open && !openMobile ? (
                   <SidebarMenuItem key={date}>
                     <SidebarMenuButton onClick={() => setOpen(true)}>
                       <History className="size-4" />
