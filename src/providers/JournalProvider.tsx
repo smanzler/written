@@ -1,6 +1,5 @@
-import LockedDialog from "@/components/ui/locked-dialog";
 import { decrypt, deriveKey, encrypt } from "@/lib/crypto";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 // helpers to encode/decode ArrayBuffers
 const toBase64 = (buf: Uint8Array<ArrayBuffer>) =>
@@ -15,7 +14,6 @@ type JournalContextType = {
   lock: () => void;
   encryptText: (text: string) => Promise<{ cipher: string; iv: string }>;
   decryptText: (cipher: string, iv: string) => Promise<string>;
-  setShowLockedDialog: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const JournalContext = createContext<JournalContextType | null>(null);
@@ -26,7 +24,6 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [masterKey, setMasterKey] = useState<CryptoKey | null>(null);
   const [isUnlocked, setUnlocked] = useState(false);
-  const [showLockedDialog, setShowLockedDialog] = useState(false);
 
   const createPassword = async (password: string, force: boolean = false) => {
     const storedEncryptedMaster = localStorage.getItem("encryptedMaster");
@@ -68,6 +65,8 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
   async function unlock(password: string): Promise<boolean> {
     const storedEncryptedMaster = localStorage.getItem("encryptedMaster");
     const storedSalt = localStorage.getItem("keySalt");
+    console.log("storedEncryptedMaster", storedEncryptedMaster);
+    console.log("storedSalt", storedSalt);
 
     if (!storedEncryptedMaster || !storedSalt) {
       return false;
@@ -123,6 +122,10 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
     return decrypt(fromBase64(cipher).buffer, fromBase64(iv), masterKey);
   }
 
+  useEffect(() => {
+    console.log("isUnlocked from useEffect context", isUnlocked);
+  }, [isUnlocked]);
+
   return (
     <JournalContext.Provider
       value={{
@@ -132,13 +135,8 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
         lock,
         encryptText,
         decryptText,
-        setShowLockedDialog,
       }}
     >
-      <LockedDialog
-        open={showLockedDialog}
-        onOpenChange={setShowLockedDialog}
-      />
       {children}
     </JournalContext.Provider>
   );

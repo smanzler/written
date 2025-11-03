@@ -23,6 +23,7 @@ import { useSettings } from "@/providers/SettingsProvider";
 import { Switch } from "./ui/switch";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
+import LockedDialog from "./ui/locked-dialog";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -30,9 +31,10 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const [passwordDialogShown, setPasswordDialogShown] = useState(false);
   const [removeKeyDialogShown, setRemoveKeyDialogShown] = useState(false);
   const [password, setPassword] = useState("");
-  const { createPassword, setShowLockedDialog, encryptText, decryptText } =
-    useJournal();
+  const { createPassword, encryptText, decryptText } = useJournal();
   const [loading, setLoading] = useState(false);
+  const [openLockedDialog, setOpenLockedDialog] = useState(false);
+
   const encryptEntries = async () => {
     const entries = await db.journals.toArray();
 
@@ -142,7 +144,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
           <Label>Cursor color</Label>
           {/* color picker */}
 
-          <Button onClick={() => setShowLockedDialog(true)}>Unlock</Button>
+          <Button onClick={() => setOpenLockedDialog(true)}>Unlock</Button>
         </div>
       </SheetContent>
 
@@ -195,6 +197,14 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <LockedDialog
+        open={openLockedDialog}
+        onOpenChange={setOpenLockedDialog}
+        onUnlock={() => {
+          console.log("unlock");
+        }}
+      />
     </Sheet>
   );
 };

@@ -16,8 +16,11 @@ import { toast } from "sonner";
 
 const LockedDialog = ({
   onOpenChange,
+  onUnlock,
   ...props
-}: React.ComponentProps<typeof Dialog>) => {
+}: React.ComponentProps<typeof Dialog> & {
+  onUnlock?: (success: boolean) => void;
+}) => {
   const [password, setPassword] = useState("");
 
   const { unlock } = useJournal();
@@ -26,14 +29,16 @@ const LockedDialog = ({
     const success = await unlock(password);
     if (!success) {
       toast.error("Permission denied");
+      if (onUnlock) onUnlock(false);
       return;
     }
     toast.success("Permission granted");
+    if (onUnlock) onUnlock(true);
     if (onOpenChange) onOpenChange(false);
   };
 
   return (
-    <Dialog {...props}>
+    <Dialog {...props} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Journal Locked</DialogTitle>
@@ -41,11 +46,22 @@ const LockedDialog = ({
             Please enter your pin to unlock the journal
           </DialogDescription>
         </DialogHeader>
-        <Label>Pin</Label>
-        <Input onChange={(e) => setPassword(e.target.value)} />
+        <Label htmlFor="pin-input">Pin</Label>
+        <Input
+          id="pin-input"
+          autoComplete="off"
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleUnlock();
+            }
+          }}
+        />
         <DialogFooter>
           <DialogClose asChild>
-            <Button>Close</Button>
+            <Button variant="secondary" onClick={() => onOpenChange?.(false)}>
+              Close
+            </Button>
           </DialogClose>
           <Button onClick={handleUnlock}>Unlock</Button>
         </DialogFooter>

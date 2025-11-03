@@ -1,10 +1,13 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { useSidebar } from "../ui/sidebar";
 import { CheckIcon, RefreshCcw } from "lucide-react";
 import { Button } from "../ui/button";
+import { useSettings } from "@/providers/SettingsProvider";
+import { useJournal } from "@/providers/JournalProvider";
+import LockedDialog from "../ui/locked-dialog";
 
 function Index() {
   const [userInput, setUserInput] = useState<string>("");
@@ -14,32 +17,59 @@ function Index() {
   const prevInputRef = useRef<string>("");
   const { open, setOpen } = useSidebar();
   const [isFocused, setIsFocused] = useState(false);
+  const { settings } = useSettings();
+  const { encryptText, isUnlocked } = useJournal();
+  const [openLockedDialog, setOpenLockedDialog] = useState(false);
+  const pendingDoneRef = useRef(false);
 
   const typing = userInput.length > prevInputRef.current.length;
 
-  const reset = useCallback(() => {
+  useEffect(() => {
+    if (isUnlocked && pendingDoneRef.current) {
+      pendingDoneRef.current = false;
+      done();
+      inputRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUnlocked]);
+
+  const reset = () => {
     prevInputRef.current = userInput;
     setUserInput("");
-  }, [userInput]);
+  };
 
-  const done = useCallback(async () => {
+  const done = async () => {
     const trimmedInput = userInput.trim();
     if (!trimmedInput) return;
 
     try {
+      let content = trimmedInput;
+
+      if (!isUnlocked) {
+        inputRef.current?.blur();
+        setOpenLockedDialog(true);
+        return;
+      }
+
+      if (settings?.lockEnabled) {
+        const result = await encryptText(trimmedInput);
+        content = JSON.stringify(result);
+      }
+
       await db.journals.add({
         title: "",
-        content: trimmedInput,
+        content,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
       toast.success("Journal entry added successfully");
       reset();
     } catch (error) {
       console.error("Failed to add journal entry:", error);
       toast.error("Failed to add journal entry");
     }
-  }, [userInput, reset]);
+  };
 
   useEffect(() => {
     if (textRef.current) {
@@ -160,6 +190,16 @@ function Index() {
           </Button>
         </motion.div>
       </div>
+
+      <LockedDialog
+        open={openLockedDialog}
+        onOpenChange={setOpenLockedDialog}
+        onUnlock={(success) => {
+          if (success) {
+            pendingDoneRef.current = true;
+          }
+        }}
+      />
     </div>
   );
 }

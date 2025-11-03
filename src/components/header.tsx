@@ -5,10 +5,13 @@ import { useJournal } from "@/providers/JournalProvider";
 import { Lock, Unlock } from "lucide-react";
 import { Button } from "./ui/button";
 import { useSettings } from "@/providers/SettingsProvider";
+import LockedDialog from "./ui/locked-dialog";
+import { useState } from "react";
 
 const Header = () => {
   const isMobile = useIsMobile();
-  const { isUnlocked, setShowLockedDialog, lock } = useJournal();
+  const { isUnlocked, lock } = useJournal();
+  const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const { settings } = useSettings();
 
   return (
@@ -21,12 +24,19 @@ const Header = () => {
               <Unlock />
             </Button>
           ) : (
-            <Button variant="default" onClick={() => setShowLockedDialog(true)}>
+            <Button variant="default" onClick={() => setOpenLockedDialog(true)}>
               <Lock />
             </Button>
           ))}
         <ModeToggle variant="ghost" />
       </div>
+      <LockedDialog
+        open={openLockedDialog}
+        onOpenChange={setOpenLockedDialog}
+        onUnlock={() => {
+          console.log("unlock");
+        }}
+      />
     </header>
   );
 };
