@@ -11,8 +11,8 @@ const fromBase64 = (str: string) =>
 type JournalContextType = {
   isUnlocked: boolean;
   enableEncryption: (password: string, force?: boolean) => Promise<boolean>;
-  disableEncryption: () => Promise<void>;
-  unlock: (password: string) => Promise<boolean>;
+  disableEncryption: (key?: CryptoKey) => Promise<void>;
+  unlock: (password: string) => Promise<CryptoKey | null>;
   lock: () => void;
   encryptText: (
     text: string,
@@ -26,7 +26,6 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [masterKey, setMasterKey] = useState<CryptoKey | null>(null);
   const [isUnlocked, setUnlocked] = useState(false);
-
   const enableEncryption = async (password: string, force: boolean = false) => {
     const storedEncryptedMaster = localStorage.getItem("encryptedMaster");
     const storedSalt = localStorage.getItem("keySalt");
@@ -62,21 +61,19 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
     return true;
   };
 
-  const disableEncryption = async () => {
-    await decryptEntries();
+  const disableEncryption = async (key?: CryptoKey) => {
+    await decryptEntries(key);
 
     localStorage.removeItem("encryptedMaster");
     localStorage.removeItem("keySalt");
-    setMasterKey(null);
-    setUnlocked(false);
   };
 
-  async function unlock(password: string): Promise<boolean> {
+  async function unlock(password: string): Promise<CryptoKey | null> {
     const storedEncryptedMaster = localStorage.getItem("encryptedMaster");
     const storedSalt = localStorage.getItem("keySalt");
 
     if (!storedEncryptedMaster || !storedSalt) {
-      return false;
+      return null;
     }
 
     // existing user — decrypt master key
@@ -101,10 +98,10 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setMasterKey(imported);
       setUnlocked(true);
-      return true;
+      return imported;
     } catch (err) {
       console.log(err);
-      return false;
+      return null;
     }
   }
 
@@ -116,10 +113,8 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
   async function encryptText(text: string, key?: CryptoKey) {
     if (!key) {
       key = masterKey ?? undefined;
-      console.log("key is null, using master key", key);
     }
     if (!key) throw new Error("Journal locked");
-    console.log("encrypting with key", key);
     const { cipher, iv } = await encrypt(text, key).catch((err) => {
       console.error(err);
       throw err;
@@ -128,13 +123,14 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   async function decryptText(cipher: string, iv: string, key?: CryptoKey) {
-    if (!key) key = masterKey ?? undefined;
+    if (!key) {
+      key = masterKey ?? undefined;
+    }
     if (!key) throw new Error("Journal locked");
     return decrypt(fromBase64(cipher).buffer, fromBase64(iv), key);
   }
 
   const encryptEntries = async (key?: CryptoKey) => {
-    console.log("encrypting");
     const entries = await db.journals.toArray();
 
     const updates = await Promise.all(

@@ -24,6 +24,7 @@ import { Switch } from "./ui/switch";
 import { toast } from "sonner";
 import LockedDialog from "./ui/locked-dialog";
 import { Spinner } from "./ui/spinner";
+import { ColorPicker } from "./ui/color-picker";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -31,7 +32,8 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const [passwordDialogShown, setPasswordDialogShown] = useState(false);
   const [removeKeyDialogShown, setRemoveKeyDialogShown] = useState(false);
   const [password, setPassword] = useState("");
-  const { enableEncryption, disableEncryption } = useJournal();
+  const { enableEncryption, disableEncryption, lock, isUnlocked } =
+    useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
 
@@ -66,16 +68,22 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     setLockLoading(false);
   };
 
-  const handleChangeLockEnabled = async (checked: boolean) => {
+  const handleChangeLockEnabled = async (checked: boolean, key?: CryptoKey) => {
     if (checked) {
       setPasswordDialogShown(true);
       return;
     }
 
+    if (!isUnlocked && !key) {
+      setOpenLockedDialog(true);
+      return;
+    }
+
     setLockLoading(true);
     try {
-      await disableEncryption();
+      await disableEncryption(key);
       await saveSettings({ lockEnabled: false });
+      lock();
     } catch (error) {
       toast.error("An error occured while trying to unlock your journal");
       console.error(error);
@@ -94,16 +102,29 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
           <SheetDescription>Configure your journal experience</SheetDescription>
         </SheetHeader>
         <div className="grid flex-1 auto-rows-min gap-6 px-4">
-          <Label>Lock your jounal entries</Label>
-          <Switch
-            checked={settings.lockEnabled}
-            onCheckedChange={handleChangeLockEnabled}
-          />
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-row items-center justify-between">
+              <Label>Lock your jounal entries</Label>
+              <Switch
+                checked={settings.lockEnabled}
+                onCheckedChange={handleChangeLockEnabled}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Enable encryption to protect your journal entries from
+              unauthorized access.
+            </p>
+          </div>
 
-          <Label>Cursor color</Label>
-          {/* color picker */}
-
-          <Button onClick={() => setOpenLockedDialog(true)}>Unlock</Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-row items-center justify-between">
+              <Label>Cursor color</Label>
+              <ColorPicker value={settings.cursorColor} onChange={() => {}} />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Change the color of the cursor in the journal.
+            </p>
+          </div>
         </div>
       </SheetContent>
 
@@ -111,8 +132,19 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Password</DialogTitle>
+            <DialogDescription>
+              Enter your password to enable encryption. This will encrypt all of
+              your journal entries.
+            </DialogDescription>
           </DialogHeader>
-          <Input onChange={(e) => setPassword(e.target.value)} />
+          <Input
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSavePassword();
+              }
+            }}
+          />
           <DialogFooter>
             <Button onClick={handleSavePassword} disabled={lockLoading}>
               {lockLoading && <Spinner />}Save
@@ -164,8 +196,11 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
       <LockedDialog
         open={openLockedDialog}
         onOpenChange={setOpenLockedDialog}
-        onUnlock={() => {
-          console.log("unlock");
+        onUnlock={async (key) => {
+          if (key) {
+            await handleChangeLockEnabled(false, key);
+            setOpenLockedDialog(false);
+          }
         }}
       />
     </Sheet>

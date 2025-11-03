@@ -19,21 +19,21 @@ const LockedDialog = ({
   onUnlock,
   ...props
 }: React.ComponentProps<typeof Dialog> & {
-  onUnlock?: (success: boolean) => void;
+  onUnlock?: (key: CryptoKey | null) => void;
 }) => {
   const [password, setPassword] = useState("");
 
   const { unlock } = useJournal();
 
   const handleUnlock = async () => {
-    const success = await unlock(password);
-    if (!success) {
+    const key = await unlock(password);
+    if (!key) {
       toast.error("Permission denied");
-      if (onUnlock) onUnlock(false);
+      if (onUnlock) onUnlock(null);
       return;
     }
     toast.success("Permission granted");
-    if (onUnlock) onUnlock(true);
+    if (onUnlock) onUnlock(key);
     if (onOpenChange) onOpenChange(false);
   };
 

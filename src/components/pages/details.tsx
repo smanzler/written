@@ -29,6 +29,8 @@ const Details = () => {
     dateObject ?? undefined
   );
 
+  if (!journals || decrypting) return null;
+
   if (!isUnlocked && settings?.lockEnabled) {
     return (
       <>
@@ -55,8 +57,6 @@ const Details = () => {
       </>
     );
   }
-
-  if (!journals || decrypting) return null;
 
   if (!dateObject || !journals || journals.length === 0)
     return (

@@ -26,7 +26,6 @@ export const useDecryptedJournalsByDate = (date?: Date) => {
       setDecrypting(true);
       const decryptedMap = new Map<number, string>();
       for (const journal of journals) {
-        console.log("decrypting journal", journal.content);
         if (isEncrypted(journal.content)) {
           try {
             const { cipher, iv } = JSON.parse(journal.content);
