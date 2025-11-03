@@ -10,7 +10,6 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useJournal } from "@/providers/JournalProvider";
-import { Label } from "./ui/label";
 import {
   Sheet,
   SheetContent,
@@ -25,6 +24,14 @@ import { toast } from "sonner";
 import LockedDialog from "./ui/locked-dialog";
 import { Spinner } from "./ui/spinner";
 import { ColorPicker } from "./ui/color-picker";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from "./ui/item";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -92,6 +99,10 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     }
   };
 
+  const handleChangeCursorColor = async (color: string) => {
+    await saveSettings({ cursorColor: color });
+  };
+
   if (!settings) return null;
 
   return (
@@ -101,31 +112,39 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>Configure your journal experience</SheetDescription>
         </SheetHeader>
-        <div className="grid flex-1 auto-rows-min gap-6 px-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-row items-center justify-between">
-              <Label>Lock your jounal entries</Label>
+
+        <ItemGroup>
+          <Item>
+            <ItemContent>
+              <ItemTitle>Lock your jounal entries</ItemTitle>
+              <ItemDescription>
+                Enable encryption to protect your journal entries from
+                unauthorized access.
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
               <Switch
                 checked={settings.lockEnabled}
                 onCheckedChange={handleChangeLockEnabled}
               />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Enable encryption to protect your journal entries from
-              unauthorized access.
-            </p>
-          </div>
+            </ItemActions>
+          </Item>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-row items-center justify-between">
-              <Label>Cursor color</Label>
-              <ColorPicker value={settings.cursorColor} onChange={() => {}} />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Change the color of the cursor in the journal.
-            </p>
-          </div>
-        </div>
+          <Item>
+            <ItemContent>
+              <ItemTitle>Cursor color</ItemTitle>
+              <ItemDescription>
+                Change the color of the cursor in the journal.
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <ColorPicker
+                defaultValue={settings.cursorColor}
+                onSubmit={handleChangeCursorColor}
+              />
+            </ItemActions>
+          </Item>
+        </ItemGroup>
       </SheetContent>
 
       <Dialog open={passwordDialogShown} onOpenChange={setPasswordDialogShown}>

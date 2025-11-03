@@ -163,7 +163,8 @@ function Index() {
                     ease: "easeInOut",
                   }
             }
-            className="bg-blue-500 w-1 h-16 ml-1 rounded-full"
+            className="w-1 h-16 ml-1 rounded-full"
+            style={{ backgroundColor: settings?.cursorColor }}
           />
         </motion.div>
       </div>

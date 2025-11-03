@@ -16,7 +16,7 @@ type SettingsContextType = {
 const DEFAULT_SETTINGS: SettingsState = {
   id: 1,
   lockEnabled: false,
-  cursorColor: "blue",
+  cursorColor: "#3b82f6",
 };
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({

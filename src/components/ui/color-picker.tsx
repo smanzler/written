@@ -1,88 +1,70 @@
 "use client";
 
-import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { HexColorPicker } from "react-colorful";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-
-function useForwardedRef<T>(ref: React.ForwardedRef<T>) {
-  const innerRef = useRef<T>(null);
-
-  useEffect(() => {
-    if (!ref) return;
-    if (typeof ref === "function") {
-      ref(innerRef.current);
-    } else {
-      ref.current = innerRef.current;
-    }
-  });
-
-  return innerRef;
-}
+import { Dialog, DialogClose, DialogContent, DialogTrigger } from "./dialog";
+import { Card, CardContent, CardFooter } from "./card";
 
 interface ColorPickerProps {
-  value: string;
-  onChange: (value: string) => void;
-  onBlur?: () => void;
+  onSubmit: (color: string) => void;
+  defaultValue: string;
 }
 
-const ColorPicker = forwardRef<
-  HTMLInputElement,
-  Omit<React.ComponentProps<typeof Button>, "value" | "onChange" | "onBlur"> &
-    ColorPickerProps &
-    React.ComponentProps<typeof Button>
->(
-  (
-    { disabled, value, onChange, onBlur, name, className, size, ...props },
-    forwardedRef
-  ) => {
-    const ref = useForwardedRef(forwardedRef);
-    const [open, setOpen] = useState(false);
+const ColorPicker = ({ onSubmit, defaultValue }: ColorPickerProps) => {
+  const [color, setColor] = useState(defaultValue);
+  const [open, setOpen] = useState(false);
 
-    const parsedValue = useMemo(() => {
-      return value || "#FFFFFF";
-    }, [value]);
+  return (
+    <Dialog onOpenChange={setOpen} open={open}>
+      <DialogTrigger asChild>
+        <Button
+          onClick={() => {
+            setOpen(true);
+          }}
+          variant="outline"
+          size="icon-sm"
+          style={{ backgroundColor: color }}
+        />
+      </DialogTrigger>
+      <DialogContent
+        className="flex-1 justify-center"
+        style={{ backgroundColor: color }}
+      >
+        <Card>
+          <CardContent className="flex flex-col gap-4 w-full">
+            <HexColorPicker color={color} onChange={setColor} />
+            <Input
+              maxLength={7}
+              onChange={(e) => {
+                setColor(e?.currentTarget?.value);
+              }}
+              value={color}
+            />
+          </CardContent>
 
-    return (
-      <Popover onOpenChange={setOpen} open={open}>
-        <PopoverTrigger asChild disabled={disabled} onBlur={onBlur}>
-          <Button
-            {...props}
-            className={cn("block", className)}
-            name={name}
-            onClick={() => {
-              setOpen(true);
-            }}
-            size={size}
-            style={{
-              backgroundColor: parsedValue,
-            }}
-            variant="outline"
-          >
-            <div />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-full">
-          <HexColorPicker color={parsedValue} onChange={onChange} />
-          <Input
-            maxLength={7}
-            onChange={(e) => {
-              onChange(e?.currentTarget?.value);
-            }}
-            ref={ref}
-            value={parsedValue}
-          />
-        </PopoverContent>
-      </Popover>
-    );
-  }
-);
+          <CardFooter className="flex flex-row gap-2 justify-end">
+            <DialogClose asChild>
+              <Button variant="secondary" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              onClick={() => {
+                onSubmit(color);
+                setOpen(false);
+              }}
+            >
+              Save
+            </Button>
+          </CardFooter>
+        </Card>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 ColorPicker.displayName = "ColorPicker";
 
 export { ColorPicker };
