@@ -23,14 +23,12 @@ const LockedDialog = ({
   const { unlock } = useJournal();
 
   const handlePasswordChange = (value: string) => {
-    console.log(value);
     if (value.length === 6) {
       handleUnlock(value);
     }
   };
 
   const handleUnlock = async (value: string) => {
-    console.log(value);
     const key = await unlock(value);
     if (!key) {
       toast.error("Permission denied");
