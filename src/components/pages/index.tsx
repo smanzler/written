@@ -20,39 +20,29 @@ function Index() {
   const { settings } = useSettings();
   const { encryptText, isUnlocked } = useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
-  const pendingDoneRef = useRef(false);
 
   const typing = userInput.length > prevInputRef.current.length;
-
-  useEffect(() => {
-    if (isUnlocked && pendingDoneRef.current) {
-      pendingDoneRef.current = false;
-      done();
-      inputRef.current?.focus();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUnlocked]);
 
   const reset = () => {
     prevInputRef.current = userInput;
     setUserInput("");
   };
 
-  const done = async () => {
+  const done = async (key?: CryptoKey) => {
     const trimmedInput = userInput.trim();
     if (!trimmedInput) return;
 
     try {
       let content = trimmedInput;
 
-      if (!isUnlocked && settings?.lockEnabled) {
+      if (!isUnlocked && settings?.lockEnabled && !key) {
         inputRef.current?.blur();
         setOpenLockedDialog(true);
         return;
       }
 
       if (settings?.lockEnabled) {
-        const result = await encryptText(trimmedInput);
+        const result = await encryptText(trimmedInput, key);
         content = JSON.stringify(result);
       }
 
@@ -186,7 +176,7 @@ function Index() {
           }}
           transition={{ duration: 1 }}
         >
-          <Button size="icon" variant="ghost" onClick={done}>
+          <Button size="icon" variant="ghost" onClick={() => done()}>
             <CheckIcon />
           </Button>
         </motion.div>
@@ -195,9 +185,10 @@ function Index() {
       <LockedDialog
         open={openLockedDialog}
         onOpenChange={setOpenLockedDialog}
-        onUnlock={(success) => {
-          if (success) {
-            pendingDoneRef.current = true;
+        onUnlock={async (key) => {
+          if (key) {
+            await done(key);
+            inputRef.current?.focus();
           }
         }}
       />
