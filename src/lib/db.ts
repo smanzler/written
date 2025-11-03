@@ -8,13 +8,21 @@ interface Journal {
   updatedAt: Date;
 }
 
+interface Settings {
+  id: number;
+  lockEnabled?: boolean;
+  cursorColor?: string;
+}
+
 const db = new Dexie("WrittenDatabase") as Dexie & {
   journals: EntityTable<Journal, "id">;
+  settings: EntityTable<Settings, "id">;
 };
 
 db.version(1).stores({
   journals: "++id, title, content, createdAt, updatedAt",
+  settings: "id",
 });
 
-export type { Journal };
+export type { Journal, Settings };
 export { db };
