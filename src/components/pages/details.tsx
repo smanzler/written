@@ -64,8 +64,6 @@ const Details = () => {
       content = JSON.stringify(result);
     }
 
-    console.log(content);
-
     await updateJournal(id, { content });
     setEditingId(null);
   };
