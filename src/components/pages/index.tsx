@@ -110,7 +110,7 @@ function Index() {
         }}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="fixed bottom-0 left-0 w-px h-px opacity-0"
+        className="absolute inset-0 m-auto w-px h-px opacity-0"
         autoCapitalize="none"
         autoComplete="off"
         autoCorrect="off"
