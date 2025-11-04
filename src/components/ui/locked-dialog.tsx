@@ -54,7 +54,11 @@ const LockedDialog = ({
         <div className="flex flex-col items-center">
           <PasswordOTP
             onChange={handlePasswordChange}
-            onSubmit={() => handleUnlock(password)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleUnlock(password);
+              }
+            }}
           />
         </div>
         <DialogFooter>
