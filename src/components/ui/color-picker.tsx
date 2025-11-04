@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,10 @@ interface ColorPickerProps {
 const ColorPicker = ({ onSubmit, value }: ColorPickerProps) => {
   const [color, setColor] = useState<string | undefined>(value);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setColor(value);
+  }, [value]);
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>
