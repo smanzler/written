@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef, useMemo, useLayoutEffect } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
@@ -8,6 +8,11 @@ import { Button } from "../ui/button";
 import { useSettings } from "@/providers/SettingsProvider";
 import { useJournal } from "@/providers/JournalProvider";
 import LockedDialog from "../ui/locked-dialog";
+
+function getRainbowColor(index: number): string {
+  const hue = (index * 10) % 360;
+  return `hsl(${hue}, 100%, 50%)`;
+}
 
 function Index() {
   const [userInput, setUserInput] = useState<string>("");
@@ -21,7 +26,10 @@ function Index() {
   const { encryptText, isUnlocked } = useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
 
-  const typing = userInput.length > prevInputRef.current.length;
+  const typing = useMemo(
+    () => userInput.length > prevInputRef.current.length,
+    [userInput.length]
+  );
 
   const reset = () => {
     prevInputRef.current = userInput;
@@ -61,7 +69,7 @@ function Index() {
     }
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (textRef.current) {
       const width = textRef.current.scrollWidth;
       const translate = -width;
@@ -72,7 +80,16 @@ function Index() {
   const focusInput = () => {
     if (inputRef.current) inputRef.current.focus();
   };
-  const tokens = userInput.split(/(\s+)/).filter((t) => t.length > 0);
+
+  const tokens = useMemo(
+    () => userInput.split(/(\s+)/).filter((t) => t.length > 0),
+    [userInput]
+  );
+
+  const hasMultipleWords = useMemo(
+    () => userInput.split(" ").length > 1,
+    [userInput]
+  );
 
   return (
     <div
@@ -123,20 +140,44 @@ function Index() {
             damping: 20,
           }}
         >
-          {tokens.map((token, index) => (
-            <motion.span
-              key={index}
-              animate={{
-                opacity: index >= tokens.length - (typing ? 1 : 2) ? 1 : 0,
-              }}
-              transition={{
-                duration: 0.5,
-                ease: "easeInOut",
-              }}
-            >
-              {token}
-            </motion.span>
-          ))}
+          {(() => {
+            let cumulativeIndex = 0;
+
+            return tokens.map((token, index) => {
+              const startIndex = cumulativeIndex;
+              cumulativeIndex += token.length;
+
+              return (
+                <motion.span
+                  key={index}
+                  animate={{
+                    opacity: index >= tokens.length - (typing ? 1 : 2) ? 1 : 0,
+                    visibility:
+                      index < tokens.length - (typing ? 1 : 2)
+                        ? "hidden"
+                        : "visible",
+                  }}
+                  transition={{
+                    duration: 0.5,
+                    ease: "easeInOut",
+                  }}
+                >
+                  {settings?.textColor === "rainbow"
+                    ? token.split("").map((char, charIndex) => (
+                        <span
+                          key={charIndex}
+                          style={{
+                            color: getRainbowColor(startIndex + charIndex),
+                          }}
+                        >
+                          {char}
+                        </span>
+                      ))
+                    : token}
+                </motion.span>
+              );
+            });
+          })()}
           <motion.span
             animate={{
               opacity: isFocused ? [1, 0.4, 1] : 0,
@@ -163,7 +204,7 @@ function Index() {
       <div className="flex flex-row mt-4">
         <motion.div
           animate={{
-            opacity: userInput.split(" ").length > 1 ? 1 : 0,
+            opacity: hasMultipleWords ? 1 : 0,
           }}
           transition={{ duration: 1 }}
         >
@@ -173,7 +214,7 @@ function Index() {
         </motion.div>
         <motion.div
           animate={{
-            opacity: userInput.split(" ").length > 1 ? 1 : 0,
+            opacity: hasMultipleWords ? 1 : 0,
           }}
           transition={{ duration: 1 }}
         >
