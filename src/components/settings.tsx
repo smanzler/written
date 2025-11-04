@@ -151,7 +151,15 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center">
-            <PasswordOTP secure={false} onChange={setPassword} />
+            <PasswordOTP
+              secure={false}
+              onChange={setPassword}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSavePassword(password);
+                }
+              }}
+            />
           </div>
           <DialogFooter>
             <Button
