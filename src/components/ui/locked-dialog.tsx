@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -21,8 +21,10 @@ const LockedDialog = ({
   onUnlock?: (key: CryptoKey | null) => void;
 }) => {
   const { unlock } = useJournal();
+  const [password, setPassword] = useState("");
 
   const handlePasswordChange = (value: string) => {
+    setPassword(value);
     if (value.length === 6) {
       handleUnlock(value);
     }
@@ -50,7 +52,10 @@ const LockedDialog = ({
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center">
-          <PasswordOTP onChange={handlePasswordChange} />
+          <PasswordOTP
+            onChange={handlePasswordChange}
+            onSubmit={() => handleUnlock(password)}
+          />
         </div>
         <DialogFooter>
           <DialogClose asChild>
