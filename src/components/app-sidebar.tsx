@@ -13,7 +13,13 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BookOpen, History, NotebookPen, SidebarOpen } from "lucide-react";
+import {
+  BookOpen,
+  CalendarCheck,
+  History,
+  NotebookPen,
+  SidebarOpen,
+} from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { NavUser } from "./nav-user";
 import { useState } from "react";
@@ -71,7 +77,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const dateObject = new Date(year, month - 1, day);
 
     if (isToday(dateObject)) {
-      return "Today";
+      return (
+        <>
+          {"Today"}
+          <CalendarCheck />
+        </>
+      );
     }
 
     // if (isYesterday(dateObject)) {
