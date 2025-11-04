@@ -26,10 +26,7 @@ function Index() {
   const { encryptText, isUnlocked } = useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
 
-  const typing = useMemo(
-    () => userInput.length > prevInputRef.current.length,
-    [userInput.length]
-  );
+  const typing = userInput.length > prevInputRef.current.length;
 
   const reset = () => {
     prevInputRef.current = userInput;
@@ -86,10 +83,7 @@ function Index() {
     [userInput]
   );
 
-  const hasMultipleWords = useMemo(
-    () => userInput.split(" ").length > 1,
-    [userInput]
-  );
+  const hasMultipleWords = useMemo(() => tokens.length > 1, [tokens]);
 
   return (
     <div
