@@ -32,6 +32,7 @@ import {
 import { useDeleteJournal, useUpdateJournal } from "@/dexie/journals/mutations";
 import { Textarea } from "../ui/textarea";
 import { cn } from "@/lib/utils";
+import { Spinner } from "../ui/spinner";
 
 const Details = () => {
   const { date } = useParams();
@@ -40,6 +41,7 @@ const Details = () => {
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [year, month, day] = date?.split("-").map(Number) || [];
   const dateObject =
@@ -59,6 +61,7 @@ const Details = () => {
   };
 
   const handleSave = async (id: number, content: string) => {
+    setSaving(true);
     if (settings?.lockEnabled) {
       const result = await encryptText(content);
       content = JSON.stringify(result);
@@ -66,6 +69,7 @@ const Details = () => {
 
     await updateJournal(id, { content });
     setEditingId(null);
+    setSaving(false);
   };
 
   if (!journals || decrypting) return null;
@@ -131,7 +135,10 @@ const Details = () => {
       <div className="flex flex-col">
         {journals?.map((journal) => (
           <DropdownMenu key={journal.id}>
-            <DropdownMenuTrigger asChild disabled={editingId === journal.id}>
+            <DropdownMenuTrigger
+              asChild
+              disabled={editingId === journal.id || saving}
+            >
               <div
                 className={cn(
                   "space-y-2 cursor-pointer rounded-md p-2",
@@ -152,6 +159,7 @@ const Details = () => {
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
                       className="resize-none wrap-anywhere"
+                      disabled={saving}
                     />
                     <div className="flex items-center">
                       <Button
@@ -166,7 +174,7 @@ const Details = () => {
                         size="icon"
                         onClick={() => handleSave(journal.id, content)}
                       >
-                        <Check />
+                        {saving ? <Spinner /> : <Check />}
                       </Button>
                     </div>
                   </div>
