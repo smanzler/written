@@ -151,7 +151,7 @@ const Details = () => {
                     <Textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      className="resize-none"
+                      className="resize-none wrap-anywhere"
                     />
                     <div className="flex items-center">
                       <Button
