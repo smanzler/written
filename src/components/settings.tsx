@@ -23,15 +23,14 @@ import { toast } from "sonner";
 import LockedDialog from "./ui/locked-dialog";
 import { Spinner } from "./ui/spinner";
 import { ColorPicker } from "./ui/color-picker";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemTitle,
-} from "./ui/item";
 import PasswordOTP from "./ui/password-otp";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "./ui/field";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -113,38 +112,34 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
           <SheetDescription>Configure your journal experience</SheetDescription>
         </SheetHeader>
 
-        <ItemGroup>
-          <Item>
-            <ItemContent>
-              <ItemTitle>Lock your jounal entries</ItemTitle>
-              <ItemDescription>
+        <FieldGroup className="px-4">
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel>Lock your jounal entries</FieldLabel>
+              <FieldDescription>
                 Enable encryption to protect your journal entries from
                 unauthorized access.
-              </ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <Switch
-                checked={settings.lockEnabled}
-                onCheckedChange={handleChangeLockEnabled}
-              />
-            </ItemActions>
-          </Item>
+              </FieldDescription>
+            </FieldContent>
+            <Switch
+              checked={settings.lockEnabled}
+              onCheckedChange={handleChangeLockEnabled}
+            />
+          </Field>
 
-          <Item>
-            <ItemContent>
-              <ItemTitle>Cursor color</ItemTitle>
-              <ItemDescription>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel>Cursor color</FieldLabel>
+              <FieldDescription>
                 Change the color of the cursor in the journal.
-              </ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <ColorPicker
-                defaultValue={settings.cursorColor}
-                onSubmit={handleChangeCursorColor}
-              />
-            </ItemActions>
-          </Item>
-        </ItemGroup>
+              </FieldDescription>
+            </FieldContent>
+            <ColorPicker
+              defaultValue={settings.cursorColor}
+              onSubmit={handleChangeCursorColor}
+            />
+          </Field>
+        </FieldGroup>
       </SheetContent>
 
       <Dialog open={passwordDialogShown} onOpenChange={setPasswordDialogShown}>
