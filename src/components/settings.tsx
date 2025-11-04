@@ -30,6 +30,9 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
 } from "./ui/field";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
@@ -98,47 +101,81 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     }
   };
 
-  const handleChangeCursorColor = async (color: string) => {
+  const handleChangeCursorColor = async (color: string | undefined) => {
     await saveSettings({ cursorColor: color });
+  };
+
+  const handleChangeTextColor = async (color: string | undefined) => {
+    await saveSettings({ textColor: color });
   };
 
   if (!settings) return null;
 
   return (
     <Sheet {...props}>
-      <SheetContent side={isMobile ? "bottom" : "right"}>
+      <SheetContent side={isMobile ? "bottom" : "right"} className="pb-16">
         <SheetHeader>
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>Configure your journal experience</SheetDescription>
         </SheetHeader>
 
         <FieldGroup className="px-4">
-          <Field orientation="horizontal">
-            <FieldContent>
-              <FieldLabel>Lock your jounal entries</FieldLabel>
-              <FieldDescription>
-                Enable encryption to protect your journal entries from
-                unauthorized access.
-              </FieldDescription>
-            </FieldContent>
-            <Switch
-              checked={settings.lockEnabled}
-              onCheckedChange={handleChangeLockEnabled}
-            />
-          </Field>
+          <FieldSet>
+            <FieldLegend>Security</FieldLegend>
+            <FieldDescription>
+              Protect your journal entries from unauthorized access.
+            </FieldDescription>
+            <FieldGroup>
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>Lock your jounal entries</FieldLabel>
+                  <FieldDescription>
+                    Enable encryption to protect your journal entries from
+                    unauthorized access.
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  checked={settings.lockEnabled}
+                  onCheckedChange={handleChangeLockEnabled}
+                />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <FieldSeparator />
 
-          <Field orientation="horizontal">
-            <FieldContent>
-              <FieldLabel>Cursor color</FieldLabel>
-              <FieldDescription>
-                Change the color of the cursor in the journal.
-              </FieldDescription>
-            </FieldContent>
-            <ColorPicker
-              defaultValue={settings.cursorColor}
-              onSubmit={handleChangeCursorColor}
-            />
-          </Field>
+          <FieldSet>
+            <FieldLegend>Appearance</FieldLegend>
+            <FieldDescription>
+              Customize the appearance of your journal.
+            </FieldDescription>
+            <FieldGroup>
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>Cursor color</FieldLabel>
+                  <FieldDescription>
+                    Change the color of the cursor in the journal.
+                  </FieldDescription>
+                </FieldContent>
+                <ColorPicker
+                  value={settings.cursorColor}
+                  onSubmit={handleChangeCursorColor}
+                />
+              </Field>
+
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>Text color</FieldLabel>
+                  <FieldDescription>
+                    Change the color of the text in the journal.
+                  </FieldDescription>
+                </FieldContent>
+                <ColorPicker
+                  value={settings.textColor}
+                  onSubmit={handleChangeTextColor}
+                />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
         </FieldGroup>
       </SheetContent>
 

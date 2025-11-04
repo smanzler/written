@@ -5,6 +5,7 @@ type SettingsState = {
   id: number;
   lockEnabled: boolean;
   cursorColor: string;
+  textColor: string;
 };
 
 type SettingsContextType = {
@@ -13,35 +14,48 @@ type SettingsContextType = {
   saveSettings: (newSettings: Partial<Settings>) => Promise<void>;
 };
 
-const DEFAULT_SETTINGS: SettingsState = {
-  id: 1,
-  lockEnabled: false,
-  cursorColor: "#3b82f6",
-};
-
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [settings, setSettings] = useState<SettingsState>();
   const [saving, setSaving] = useState(false);
 
+  const getDefaultSettings = (): SettingsState => ({
+    id: 1,
+    lockEnabled: false,
+    cursorColor: "#3b82f6",
+    textColor: getComputedStyle(document.documentElement)
+      .getPropertyValue("--primary")
+      .trim(),
+  });
+
   const getStoredSettings = async () => {
     const storedSettings = await db.settings.get(1);
     return storedSettings;
   };
 
+  const removeUndefined = <T extends Record<string, unknown>>(
+    obj: T
+  ): Partial<T> => {
+    return Object.fromEntries(
+      Object.entries(obj).filter(
+        ([key, value]) => value !== undefined && key !== "id"
+      )
+    ) as Partial<T>;
+  };
+
   const saveSettings = async (newSettings: Partial<Settings>) => {
     setSaving(true);
     const current = await getStoredSettings();
-    const joinedSettings = { ...current, ...newSettings };
+    const joinedSettings = removeUndefined({ ...current, ...newSettings });
     await db.settings.put({ id: 1, ...joinedSettings });
-    setSettings({ ...DEFAULT_SETTINGS, ...joinedSettings });
+    setSettings({ ...getDefaultSettings(), ...joinedSettings });
     setSaving(false);
   };
 
   const initialize = async () => {
     const storedSettings = await getStoredSettings();
-    setSettings({ ...DEFAULT_SETTINGS, ...storedSettings });
+    setSettings({ ...getDefaultSettings(), ...storedSettings });
   };
 
   useEffect(() => {

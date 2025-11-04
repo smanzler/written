@@ -12,6 +12,7 @@ interface Settings {
   id: number;
   lockEnabled?: boolean;
   cursorColor?: string;
+  textColor?: string;
 }
 
 const db = new Dexie("WrittenDatabase") as Dexie & {

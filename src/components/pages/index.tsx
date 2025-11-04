@@ -115,6 +115,7 @@ function Index() {
         <motion.div
           ref={textRef}
           className="text-[4rem] inline-flex items-center h-24 whitespace-pre"
+          style={{ color: settings?.textColor }}
           animate={{ x: translateX }}
           transition={{
             type: "spring",

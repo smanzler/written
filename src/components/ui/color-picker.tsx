@@ -15,12 +15,12 @@ import {
 import { Card, CardContent, CardFooter, CardHeader } from "./card";
 
 interface ColorPickerProps {
-  onSubmit: (color: string) => void;
-  defaultValue: string;
+  onSubmit: (color: string | undefined) => void;
+  value: string | undefined;
 }
 
-const ColorPicker = ({ onSubmit, defaultValue }: ColorPickerProps) => {
-  const [color, setColor] = useState(defaultValue);
+const ColorPicker = ({ onSubmit, value }: ColorPickerProps) => {
+  const [color, setColor] = useState<string | undefined>(value);
   const [open, setOpen] = useState(false);
 
   return (
@@ -32,14 +32,14 @@ const ColorPicker = ({ onSubmit, defaultValue }: ColorPickerProps) => {
           }}
           variant="outline"
           size="icon-sm"
-          style={{ backgroundColor: color }}
+          style={{ backgroundColor: value }}
         />
       </DialogTrigger>
       <DialogContent
         className="flex-1 justify-center"
         style={{ backgroundColor: color }}
       >
-        <Card>
+        <Card className="gap-4">
           <CardHeader>
             <DialogTitle>Color Picker</DialogTitle>
             <DialogDescription>
@@ -57,9 +57,13 @@ const ColorPicker = ({ onSubmit, defaultValue }: ColorPickerProps) => {
             />
           </CardContent>
 
-          <CardFooter className="flex flex-row gap-2 justify-end">
+          <CardFooter className="flex-row gap-2">
             <DialogClose asChild>
-              <Button variant="secondary" onClick={() => setOpen(false)}>
+              <Button
+                variant="secondary"
+                onClick={() => setOpen(false)}
+                className="flex-1"
+              >
                 Cancel
               </Button>
             </DialogClose>
@@ -68,10 +72,22 @@ const ColorPicker = ({ onSubmit, defaultValue }: ColorPickerProps) => {
                 onSubmit(color);
                 setOpen(false);
               }}
+              className="flex-1"
             >
               Save
             </Button>
           </CardFooter>
+          <Button
+            variant="link"
+            size="sm"
+            className="w-full font-normal"
+            onClick={() => {
+              onSubmit(undefined);
+              setOpen(false);
+            }}
+          >
+            Reset to default
+          </Button>
         </Card>
       </DialogContent>
     </Dialog>
