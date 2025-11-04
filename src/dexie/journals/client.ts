@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, Journal } from "@/lib/db";
 
 export const getJournalDates = async () => {
   const journalsArray = await db.journals
@@ -37,4 +37,12 @@ export const getJournalsByDate = async (date?: Date) => {
     .between(start, end, true, true)
     .toArray();
   return journals;
+};
+
+export const deleteJournal = async (id: number) => {
+  await db.journals.delete(id);
+};
+
+export const updateJournal = async (id: number, data: Partial<Journal>) => {
+  await db.journals.update(id, data);
 };
