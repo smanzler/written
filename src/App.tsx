@@ -4,7 +4,7 @@ import Index from "./components/pages/index";
 import { ThemeProvider } from "./components/theme-provider";
 import { Toaster } from "./components/ui/sonner";
 import { useIsMobile } from "./hooks/use-mobile";
-import { HashRouter, Route } from "react-router";
+import { BrowserRouter, Route } from "react-router";
 import { Routes } from "react-router";
 import Details from "./components/pages/details";
 import { JournalProvider } from "./providers/JournalProvider";
@@ -19,7 +19,7 @@ function App() {
       <SettingsProvider>
         <JournalProvider>
           <SidebarProvider defaultOpen={false}>
-            <HashRouter>
+            <BrowserRouter>
               <AppSidebar collapsible="icon" />
               <SidebarInset>
                 <Header />
@@ -29,7 +29,7 @@ function App() {
                 </Routes>
               </SidebarInset>
               <Toaster position={isMobile ? "top-center" : "bottom-right"} />
-            </HashRouter>
+            </BrowserRouter>
           </SidebarProvider>
         </JournalProvider>
       </SettingsProvider>
