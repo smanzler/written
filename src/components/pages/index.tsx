@@ -1,13 +1,14 @@
 import { useState, useRef, useMemo, useLayoutEffect } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { db } from "@/lib/db";
+import { db, Journal } from "@/lib/db";
 import { useSidebar } from "../ui/sidebar";
 import { CheckIcon, RefreshCcw } from "lucide-react";
 import { Button } from "../ui/button";
 import { useSettings } from "@/providers/SettingsProvider";
 import { useJournal } from "@/providers/JournalProvider";
 import LockedDialog from "../ui/locked-dialog";
+import { useLLMStore } from "@/stores/llmStore";
 
 function getRainbowColor(index: number): string {
   const hue = (index * 10) % 360;
@@ -25,6 +26,7 @@ function Index() {
   const { settings } = useSettings();
   const { encryptText, isUnlocked } = useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
+  const { cleanUpText, tagText } = useLLMStore();
 
   const typing = userInput.length > prevInputRef.current.length;
 
@@ -39,6 +41,9 @@ function Index() {
 
     try {
       let content = trimmedInput;
+      let cleanedContent: string | null = null;
+      let taggedSections: string | null = null;
+      let journal: Omit<Journal, "id"> | null = null;
 
       if (!isUnlocked && settings?.lockEnabled && !key) {
         inputRef.current?.blur();
@@ -46,17 +51,50 @@ function Index() {
         return;
       }
 
-      if (settings?.lockEnabled) {
-        const result = await encryptText(trimmedInput, key);
-        content = JSON.stringify(result);
+      if (settings?.aiCleanupEnabled) {
+        cleanedContent = await cleanUpText(content);
+
+        console.log("cleanedContent: ", cleanedContent);
       }
 
-      await db.journals.add({
-        title: "",
-        content,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      if (settings?.aiTaggingEnabled) {
+        const result = await tagText(content);
+
+        taggedSections = JSON.stringify(result);
+      }
+
+      let blob = {
+        content: content,
+        cleaned_content: cleanedContent,
+        tagged_sections: taggedSections,
+      };
+
+      if (settings?.lockEnabled) {
+        const result = await encryptText(JSON.stringify(blob), key);
+
+        journal = {
+          raw_blob: null,
+          encrypted_blob: JSON.stringify(result),
+          is_encrypted: true,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+      } else {
+        journal = {
+          raw_blob: JSON.stringify(blob),
+          encrypted_blob: null,
+          is_encrypted: false,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+      }
+
+      if (!journal) {
+        toast.error("Failed to create journal entry");
+        return;
+      }
+
+      await db.journals.add(journal);
 
       toast.success("Journal entry added successfully");
       reset();

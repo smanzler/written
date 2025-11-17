@@ -1,19 +1,38 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { getJournalDates, getJournalsByDate } from "./client";
 import { useJournal } from "@/providers/JournalProvider";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSettings } from "@/providers/SettingsProvider";
+import type { Journal } from "@/lib/db";
+
+type JournalBlob = {
+  content?: string;
+  cleaned_content?: string | null;
+  tagged_sections?: string | null;
+  error?: string;
+};
+
+export type DecryptedJournal = Journal & JournalBlob;
+
+type UseDecryptedJournalsByDateReturn = {
+  journals: DecryptedJournal[];
+  decrypting: boolean;
+};
 
 export const useJournalDates = () => useLiveQuery(getJournalDates);
-
 export const useJournalsByDate = (date?: Date) =>
   useLiveQuery(() => getJournalsByDate(date), [date]);
 
-export const useDecryptedJournalsByDate = (date?: Date) => {
+export const useDecryptedJournalsByDate = (
+  date?: Date
+): UseDecryptedJournalsByDateReturn => {
   const journals = useJournalsByDate(date);
   const { decryptText, isUnlocked } = useJournal();
   const { settings } = useSettings();
-  const [decrypted, setDecrypted] = useState<Map<number, string>>(new Map());
+
+  const [decrypted, setDecrypted] = useState<Map<number, JournalBlob>>(
+    new Map()
+  );
   const [decrypting, setDecrypting] = useState(false);
 
   useEffect(() => {
@@ -22,49 +41,75 @@ export const useDecryptedJournalsByDate = (date?: Date) => {
       return;
     }
 
+    let cancelled = false;
+
     const decryptAll = async () => {
       setDecrypting(true);
-      const decryptedMap = new Map<number, string>();
-      for (const journal of journals) {
-        if (isEncrypted(journal.content)) {
-          try {
-            const { cipher, iv } = JSON.parse(journal.content);
-            const text = await decryptText(cipher, iv);
-            decryptedMap.set(journal.id!, text);
-          } catch {
-            decryptedMap.set(journal.id!, "[Decryption failed]");
+
+      const entries = await Promise.all(
+        journals.map(async (journal) => {
+          if (!journal.is_encrypted) {
+            console.log("journal.raw_blob: ", journal.raw_blob);
+            return [journal.id!, JSON.parse(journal.raw_blob ?? "{}")] as const;
           }
-        } else {
-          decryptedMap.set(journal.id!, journal.content);
-        }
+
+          try {
+            if (!journal.encrypted_blob) {
+              return [journal.id!, { error: "[Decryption failed]" }] as const;
+            }
+            console.log("journal.encrypted_blob: ", journal.encrypted_blob);
+            const { cipher, iv } = JSON.parse(journal.encrypted_blob);
+            const blob = await decryptText(cipher, iv);
+            return [journal.id!, JSON.parse(blob)] as const;
+          } catch {
+            return [journal.id!, { error: "[Decryption failed]" }] as const;
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setDecrypted(new Map(entries));
+        setDecrypting(false);
       }
-      setDecrypting(false);
-      setDecrypted(decryptedMap);
     };
 
     decryptAll();
+
+    return () => {
+      cancelled = true;
+    };
   }, [journals, isUnlocked, settings?.lockEnabled, decryptText]);
 
+  const merged = useMemo((): DecryptedJournal[] => {
+    if (!journals) return [];
+    return journals.map((j): DecryptedJournal => {
+      const blob = decrypted.get(j.id!);
+
+      let blobData: JournalBlob;
+
+      if (blob) {
+        blobData = blob;
+      } else if (j.is_encrypted) {
+        blobData = { content: "Decrypting..." };
+      } else if (j.raw_blob) {
+        try {
+          blobData = JSON.parse(j.raw_blob) as JournalBlob;
+        } catch {
+          blobData = { content: j.raw_blob };
+        }
+      } else {
+        blobData = {};
+      }
+
+      return {
+        ...j,
+        ...blobData,
+      };
+    });
+  }, [journals, decrypted]);
+
   return {
-    journals: journals?.map((j) => ({
-      ...j,
-      content:
-        decrypted.get(j.id!) ??
-        (isEncrypted(j.content) ? "Decrypting..." : j.content),
-    })),
+    journals: merged,
     decrypting,
   };
-};
-
-const isEncrypted = (content: string): boolean => {
-  try {
-    const parsed = JSON.parse(content);
-    return (
-      parsed &&
-      typeof parsed.cipher === "string" &&
-      typeof parsed.iv === "string"
-    );
-  } catch {
-    return false;
-  }
 };

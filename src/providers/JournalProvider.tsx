@@ -135,10 +135,16 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const updates = await Promise.all(
       entries.map(async (entry) => {
-        const result = await encryptText(entry.content, key);
+        if (!entry.raw_blob)
+          return { key: entry.id, changes: { encrypted_blob: null } };
+        const result = await encryptText(entry.raw_blob, key);
         return {
           key: entry.id,
-          changes: { content: JSON.stringify(result) },
+          changes: {
+            raw_blob: null,
+            encrypted_blob: JSON.stringify(result),
+            is_encrypted: true,
+          },
         };
       })
     );
@@ -151,11 +157,17 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const updates = await Promise.all(
       entries.map(async (entry) => {
-        const { cipher, iv } = JSON.parse(entry.content);
+        if (!entry.encrypted_blob)
+          return { key: entry.id, changes: { raw_blob: null } };
+        const { cipher, iv } = JSON.parse(entry.encrypted_blob);
         const result = await decryptText(cipher, iv, key);
         return {
           key: entry.id,
-          changes: { content: result },
+          changes: {
+            raw_blob: result,
+            encrypted_blob: null,
+            is_encrypted: false,
+          },
         };
       })
     );

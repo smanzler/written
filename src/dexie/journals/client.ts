@@ -2,16 +2,16 @@ import { db, Journal } from "@/lib/db";
 
 export const getJournalDates = async () => {
   const journalsArray = await db.journals
-    .orderBy("createdAt")
+    .orderBy("created_at")
     .reverse()
     .toArray();
   // Group journals by date string in local timezone (YYYY-MM-DD)
   const data = journalsArray.reduce((grouped, journal) => {
     let dateObj: Date;
-    if (journal.createdAt instanceof Date) {
-      dateObj = journal.createdAt;
+    if (journal.created_at instanceof Date) {
+      dateObj = journal.created_at;
     } else {
-      dateObj = new Date(journal.createdAt);
+      dateObj = new Date(journal.created_at);
     }
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -33,7 +33,7 @@ export const getJournalsByDate = async (date?: Date) => {
   const end = new Date(date);
   end.setHours(23, 59, 59, 999);
   const journals = await db.journals
-    .where("createdAt")
+    .where("created_at")
     .between(start, end, true, true)
     .toArray();
   return journals;

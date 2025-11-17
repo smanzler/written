@@ -62,15 +62,40 @@ const Details = () => {
 
   const handleSave = async (id: number, content: string) => {
     setSaving(true);
-    if (settings?.lockEnabled) {
-      const result = await encryptText(content);
-      content = JSON.stringify(result);
+
+    const journal = journals.find((j) => j.id === id);
+
+    if (!journal) return;
+
+    let journalData;
+
+    let blob = {
+      content: content,
+      cleaned_content: journal.cleaned_content,
+      tagged_sections: journal.tagged_sections,
+    };
+
+    if (journal.is_encrypted) {
+      const result = await encryptText(JSON.stringify(blob));
+      journalData = {
+        raw_blob: null,
+        encrypted_blob: JSON.stringify(result),
+        updated_at: new Date(),
+      };
+    } else {
+      journalData = {
+        raw_blob: JSON.stringify(blob),
+        encrypted_blob: null,
+        updated_at: new Date(),
+      };
     }
 
-    await updateJournal(id, { content });
+    await updateJournal(id, journalData);
     setEditingId(null);
     setSaving(false);
   };
+
+  console.log("journals: ", journals);
 
   if (!journals || decrypting) return null;
 
@@ -147,7 +172,7 @@ const Details = () => {
                 )}
               >
                 <Label className="text-muted-foreground">
-                  {journal.createdAt.toLocaleTimeString("en-US", {
+                  {journal.created_at.toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
                     hour12: true,
@@ -180,6 +205,9 @@ const Details = () => {
                   </div>
                 ) : (
                   <p className="text-sm wrap-anywhere">{journal.content}</p>
+                )}
+                {journal.error && (
+                  <p className="text-sm text-red-500">{journal.error}</p>
                 )}
               </div>
             </DropdownMenuTrigger>
