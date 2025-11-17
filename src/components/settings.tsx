@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from "./ui/button";
 import { useJournal } from "@/providers/JournalProvider";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -34,6 +35,18 @@ import {
   FieldSeparator,
   FieldSet,
 } from "./ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { SelectItemText } from "@radix-ui/react-select";
+import { useLLMStore } from "@/stores/llmStore";
+import { Progress } from "./ui/progress";
+import { cn } from "@/lib/utils";
+import { XIcon } from "lucide-react";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -45,6 +58,59 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
+    null
+  );
+  const [isScrolled, setIsScrolled] = useState(false);
+  const {
+    models: llmModels,
+    status: modelStatus,
+    progress: modelProgress,
+    message: modelMessage,
+    error: modelError,
+    changeModel,
+    currentModelId,
+    targetModelId,
+  } = useLLMStore();
+  const isModelBusy = ["checking-cache", "downloading", "loading"].includes(
+    modelStatus
+  );
+
+  useEffect(() => {
+    if (!scrollElement) return;
+
+    const handleScroll = () => {
+      setIsScrolled(scrollElement.scrollTop > 0);
+    };
+
+    scrollElement.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      scrollElement.removeEventListener("scroll", handleScroll);
+    };
+  }, [scrollElement]);
+
+  const setScrollableRef = useCallback((node: HTMLDivElement | null) => {
+    setScrollElement(node);
+  }, []);
+
+  useEffect(() => {
+    if (!settings?.selectedModel) return;
+    if (targetModelId === settings.selectedModel) return;
+    if (currentModelId === settings.selectedModel) return;
+    if (isModelBusy) return;
+
+    changeModel(settings.selectedModel).catch(() => {
+      // Errors are surfaced through the store state/toasts.
+    });
+  }, [
+    settings?.selectedModel,
+    changeModel,
+    currentModelId,
+    targetModelId,
+    isModelBusy,
+  ]);
 
   const handleSavePassword = async (value: string) => {
     setLockLoading(true);
@@ -109,17 +175,66 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     await saveSettings({ textColor: color });
   };
 
+  const handleChangeAiTaggingEnabled = async (checked: boolean) => {
+    if (!settings?.selectedModel) {
+      toast.error("Please select a model before enabling AI tagging.");
+      return;
+    }
+
+    await saveSettings({ aiTaggingEnabled: checked });
+  };
+
+  const handleChangeAiCleanupEnabled = async (checked: boolean) => {
+    if (!settings?.selectedModel) {
+      toast.error("Please select a model before enabling AI cleanup.");
+      return;
+    }
+
+    await saveSettings({ aiCleanupEnabled: checked });
+  };
+
+  const handleChangeSelectedModel = async (value: string | undefined) => {
+    if (!value) return;
+
+    try {
+      await changeModel(value);
+      await saveSettings({ selectedModel: value });
+      toast.success("Model ready to use.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load the selected model.");
+    }
+  };
+
   if (!settings) return null;
 
   return (
     <Sheet {...props}>
-      <SheetContent side={isMobile ? "bottom" : "right"} className="pb-16">
-        <SheetHeader>
+      <SheetContent
+        ref={setScrollableRef}
+        side={isMobile ? "bottom" : "right"}
+        className={cn(
+          isMobile ? "max-h-[80vh]" : "pb-16",
+          "overflow-y-auto overflow-x-hidden [&>button]:hidden"
+        )}
+      >
+        <SheetHeader
+          className={cn(
+            "sticky top-0 transition-all duration-300 ease-in-out z-5",
+            isScrolled
+              ? "bg-card shadow-xl dark:shadow-[0_10px_10px_rgba(0,0,0,0.5)] backdrop-blur-lg supports-[backdrop-filter]:bg-neutral-400/40 dark:supports-[backdrop-filter]:bg-neutral-700/40"
+              : "bg-transparent backdrop-blur-none shadow-none"
+          )}
+        >
           <SheetTitle>Settings</SheetTitle>
           <SheetDescription>Configure your journal experience</SheetDescription>
+          <SheetClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+            <XIcon className="size-4" />
+            <span className="sr-only">Close</span>
+          </SheetClose>
         </SheetHeader>
 
-        <FieldGroup className="px-4">
+        <FieldGroup className="p-4 -mt-4">
           <FieldSet>
             <FieldLegend>Security</FieldLegend>
             <FieldDescription>
@@ -141,6 +256,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
               </Field>
             </FieldGroup>
           </FieldSet>
+
           <FieldSeparator />
 
           <FieldSet>
@@ -173,6 +289,109 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                   value={settings.textColor}
                   onSubmit={handleChangeTextColor}
                 />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+
+          <FieldSeparator />
+
+          <FieldSet>
+            <FieldLegend>AI</FieldLegend>
+            <FieldDescription>
+              Customize the AI settings for your journal.
+            </FieldDescription>
+            <FieldGroup>
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>Tagging Text Entries</FieldLabel>
+                  <FieldDescription>
+                    Enable tagging of text entries with AI.
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  checked={settings.aiTaggingEnabled}
+                  onCheckedChange={handleChangeAiTaggingEnabled}
+                />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>Cleanup Text Entries</FieldLabel>
+                  <FieldDescription>
+                    Enable cleanup of text entries with AI.
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  checked={settings.aiCleanupEnabled}
+                  onCheckedChange={handleChangeAiCleanupEnabled}
+                />
+              </Field>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <FieldContent>
+                  <FieldLabel>Selected Model</FieldLabel>
+                  <FieldDescription>
+                    Select the model to use for AI tagging and cleanup.
+                  </FieldDescription>
+                </FieldContent>
+                <div className="space-y-4 text-xs">
+                  <Select
+                    value={settings.selectedModel || undefined}
+                    onValueChange={handleChangeSelectedModel}
+                    disabled={isModelBusy}
+                  >
+                    <SelectTrigger className="min-w-[220px]">
+                      {isModelBusy ? (
+                        <div className="flex flex-row gap-2 items-center">
+                          <Spinner />
+                          Loading model...
+                        </div>
+                      ) : (
+                        <SelectValue>
+                          {settings.selectedModel
+                            ? llmModels.find(
+                                (model) => model.id === settings.selectedModel
+                              )?.label
+                            : "Choose a model"}
+                        </SelectValue>
+                      )}
+                    </SelectTrigger>
+                    <SelectContent align="end">
+                      {llmModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <SelectItemText>
+                            <div className="flex flex-col text-left">
+                              <span>{model.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {model.description} · {model.vram}
+                              </span>
+                            </div>
+                          </SelectItemText>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isModelBusy && (
+                    <div className="space-y-2">
+                      {modelMessage && (
+                        <div className="flex flex-row justify-between gap-2">
+                          <p className="text-muted-foreground">
+                            {modelMessage}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {modelProgress}%
+                          </p>
+                        </div>
+                      )}
+                      <Progress value={modelProgress} className="w-full" />
+                    </div>
+                  )}
+                  {modelError && (
+                    <p className="text-destructive">{modelError}</p>
+                  )}
+                </div>
               </Field>
             </FieldGroup>
           </FieldSet>

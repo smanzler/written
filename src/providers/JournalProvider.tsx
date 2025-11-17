@@ -100,7 +100,7 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({
       setUnlocked(true);
       return imported;
     } catch (err) {
-      console.log(err);
+      console.error(err);
       return null;
     }
   }

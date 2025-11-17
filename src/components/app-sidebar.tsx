@@ -102,11 +102,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     });
   };
 
-  React.useEffect(() => {
-    console.log("openMobile", openMobile);
-    console.log("open", open);
-  }, [openMobile, open]);
-
   const renderIcon = () => {
     return (
       <div className="relative size-4">

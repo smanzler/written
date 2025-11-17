@@ -6,6 +6,9 @@ type SettingsState = {
   lockEnabled: boolean;
   cursorColor: string;
   textColor: string;
+  aiTaggingEnabled: boolean;
+  aiCleanupEnabled: boolean;
+  selectedModel: string | undefined;
 };
 
 type SettingsContextType = {
@@ -53,6 +56,9 @@ const getDefaultSettings = (): SettingsState => {
     lockEnabled: false,
     cursorColor: "#3b82f6",
     textColor: cssColorToHex(primaryColor),
+    aiTaggingEnabled: false,
+    aiCleanupEnabled: false,
+    selectedModel: undefined,
   };
 };
 
