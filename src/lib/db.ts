@@ -26,7 +26,7 @@ const db = new Dexie("WrittenDatabase") as Dexie & {
 
 db.version(1).stores({
   journals:
-    "++id, is_encrypted, raw_blob, encrypted_blob, created_at, updated_at",
+    "++id, is_encrypted, raw_blob, encrypted_blob, created_at, updated_at, createdAt",
   settings: "id",
 });
 
