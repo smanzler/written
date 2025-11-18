@@ -17,10 +17,20 @@ export type LocalLLMModel = {
   vram: string;
 };
 
-export type TaggedSection = {
-  text: string;
-  tag: string;
-};
+const tags = [
+  "Reflection",
+  "Gratitude",
+  "Goals",
+  "Mood",
+  "Ideas",
+  "Relationships",
+  "Work",
+  "Health",
+  "Personal Growth",
+  "Challenges",
+  "Accomplishments",
+  "Lessons Learned",
+];
 
 export const LLM_MODELS: LocalLLMModel[] = [
   {
@@ -64,7 +74,7 @@ type LLMStoreState = {
   resetStatus: () => void;
   getEngine: () => MLCEngine;
   cleanUpText: (text: string) => Promise<string>;
-  tagText: (text: string) => Promise<TaggedSection[]>;
+  tagText: (text: string) => Promise<string>;
 };
 
 export const useLLMStore = create<LLMStoreState>((set, get) => {
@@ -200,7 +210,7 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
             {
               role: "system",
               content:
-                "You are a helpful assistant that cleans up and improves text. Fix grammar, spelling, punctuation, and improve clarity while preserving the original meaning and tone. Return only the cleaned text without any explanations or additional commentary.",
+                "You are an expert editor and writing assistant. Thoroughly rewrite the provided text to correct all grammar, spelling, and punctuation errors, improve clarity, conciseness, and logical flow, and rephrase awkward sentences to sound natural, professional, and easy to read. Ensure the meaning and tone are preserved but do not hesitate to reword or restructure sentences as needed to achieve clean, polished writing. Return ONLY the fully cleaned and improved text—DO NOT include explanations, comments, or any other output only the text.",
             },
             {
               role: "user",
@@ -211,7 +221,7 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
           max_tokens: 2000,
         });
 
-        console.log("response from cleaning up: ", response);
+        console.log("response: ", response);
 
         const cleanedText =
           response.choices[0]?.message?.content?.trim() || text;
@@ -221,47 +231,55 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
         return text;
       }
     },
-    async tagText(text: string): Promise<TaggedSection[]> {
+    async tagText(text: string): Promise<string> {
       const { currentModelId, status } = get();
       if (!currentModelId || status !== "ready") {
-        return [];
+        return "";
       }
 
       const model = LLM_MODELS.find((m) => m.id === currentModelId);
       if (!model) {
-        return [];
+        return "";
       }
 
       const engine = get().getEngine();
-      const taggedSections: TaggedSection[] = [];
 
       try {
         const response = await engine.chat.completions.create({
           messages: [
             {
               role: "system",
-              content:
-                "You are a helpful assistant that analyzes text sections and suggests a single relevant tag. Analyze the content and suggest ONE tag that best describes the main topic, emotion, or theme of this section. Return only the tag, nothing else. Keep the tag short (1-3 words).",
+              content: `You are a helpful assistant that analyzes and categorizes journal text. Split the provided text into sections, without changing the content of the sections. For each section, suggest one or more relevant tags from the following list: ${tags
+                .map((t) => `"${t}"`)
+                .join(
+                  ", "
+                )}. Return your response as structured JSON in the exact following format:
+                  [
+                    {
+                      "section": "<section text>",
+                      "tags": ["Tag1", "Tag2", ...]
+                    },
+                    ...
+                  ]
+  
+                  Do not explain your choices or add any commentary. Only return the JSON array as specified above.`,
             },
             {
               role: "user",
-              content: `Analyze this text section and suggest a single relevant tag:\n\n${text}`,
+              content: `Analyze this text and suggest relevant tags:\n\n${text}`,
             },
           ],
           temperature: 0.5,
-          max_tokens: 20,
+          max_tokens: 2000,
         });
 
-        console.log("response from tagging: ", response);
-
-        const tag = response.choices[0]?.message?.content?.trim() || "untagged";
-        taggedSections.push({ text, tag });
+        const taggedSections =
+          response.choices[0]?.message?.content?.trim() || "";
+        return taggedSections;
       } catch (error) {
         console.error("Error tagging section:", error);
-        taggedSections.push({ text, tag: "untagged" });
+        return "";
       }
-
-      return taggedSections;
     },
   };
 });

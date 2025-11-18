@@ -11,9 +11,13 @@ import { Button } from "../ui/button";
 import {
   ArrowLeft,
   BookOpen,
+  Brain,
   Check,
+  Copy,
+  FileText,
   Lock,
   Pencil,
+  Tag,
   Trash,
   X,
 } from "lucide-react";
@@ -25,14 +29,28 @@ import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useDeleteJournal, useUpdateJournal } from "@/dexie/journals/mutations";
 import { Textarea } from "../ui/textarea";
 import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogHeader,
+  DialogDescription,
+} from "../ui/dialog";
+import React from "react";
+import { Badge } from "../ui/badge";
+import { Separator } from "../ui/separator";
 
 const Details = () => {
   const { date } = useParams();
@@ -42,6 +60,15 @@ const Details = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [cleanedContent, setCleanedContent] = useState<string | null>(null);
+  const [taggedSections, setTaggedSections] = useState<
+    { section: string; tags: string[] }[] | null
+  >(null);
+
+  React.useEffect(() => {
+    console.log("cleanedContent: ", cleanedContent);
+    console.log("taggedSections: ", taggedSections?.[0]);
+  }, [cleanedContent, taggedSections]);
 
   const [year, month, day] = date?.split("-").map(Number) || [];
   const dateObject =
@@ -95,7 +122,30 @@ const Details = () => {
     setSaving(false);
   };
 
-  console.log("journals: ", journals);
+  const handleViewCleanedContent = (id: number) => {
+    if (!journals) return;
+    const journal = journals.find((j) => j.id === id);
+    if (!journal) return;
+    setCleanedContent(journal.cleaned_content ?? "");
+  };
+
+  const handleViewTaggedSections = (id: number) => {
+    if (!journals) return;
+    const journal = journals.find((j) => j.id === id);
+    if (!journal) return;
+    let doubleParsed;
+    try {
+      doubleParsed = JSON.parse(JSON.parse(journal.tagged_sections ?? "[]"));
+    } catch (e) {
+      doubleParsed = [];
+    }
+    setTaggedSections(
+      doubleParsed.map((section: any) => ({
+        section: section.section,
+        tags: section.tags,
+      }))
+    );
+  };
 
   if (!journals || decrypting) return null;
 
@@ -212,22 +262,114 @@ const Details = () => {
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleEdit(journal.id)}>
-                <Pencil />
-                Edit
-              </DropdownMenuItem>
+              {(journal.cleaned_content || journal.tagged_sections) && (
+                <>
+                  <DropdownMenuGroup>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Brain />
+                        View AI Analysis
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {!!journal.cleaned_content && (
+                          <DropdownMenuItem
+                            onClick={() => handleViewCleanedContent(journal.id)}
+                          >
+                            <FileText />
+                            Cleaned Content
+                          </DropdownMenuItem>
+                        )}
+                        {!!journal.tagged_sections && (
+                          <DropdownMenuItem
+                            onClick={() => handleViewTaggedSections(journal.id)}
+                          >
+                            <Tag />
+                            Tagged Sections
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onClick={() =>
+                    navigator.clipboard.writeText(journal.content || "")
+                  }
+                >
+                  <Copy />
+                  Copy
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleEdit(journal.id)}>
+                  <Pencil />
+                  Edit
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => deleteJournal(journal.id)}
-              >
-                <Trash />
-                Delete
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => deleteJournal(journal.id)}
+                >
+                  <Trash />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         ))}
       </div>
+
+      <Dialog
+        open={!!cleanedContent}
+        onOpenChange={() => setCleanedContent(null)}
+      >
+        <DialogContent>
+          <DialogHeader className="mb-4">
+            <DialogTitle>Cleaned Content</DialogTitle>
+            <DialogDescription>
+              The following content has been cleaned up:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+            <p className="text-muted-foreground text-sm">{cleanedContent}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!taggedSections}
+        onOpenChange={() => setTaggedSections(null)}
+      >
+        <DialogContent>
+          <DialogHeader className="mb-4">
+            <DialogTitle>Tagged Sections</DialogTitle>
+            <DialogDescription>
+              The following sections have been tagged with the following tags:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+            {taggedSections &&
+              taggedSections.map((section, index) => (
+                <React.Fragment key={index}>
+                  <div className="flex flex-row gap-2 justify-between">
+                    <p className="text-muted-foreground text-sm">
+                      {section.section}
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {section.tags.map((tag, tagIndex) => (
+                        <Badge key={`${tagIndex}-${tag}`}>{tag}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  {index !== taggedSections.length - 1 && <Separator />}
+                </React.Fragment>
+              ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

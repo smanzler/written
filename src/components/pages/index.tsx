@@ -60,6 +60,8 @@ function Index() {
       if (settings?.aiTaggingEnabled) {
         const result = await tagText(content);
 
+        console.log("taggedSections: ", result);
+
         taggedSections = JSON.stringify(result);
       }
 
