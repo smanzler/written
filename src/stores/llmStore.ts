@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { MLCEngine, hasModelInCache, prebuiltAppConfig } from "@mlc-ai/web-llm";
+import { toast } from "sonner";
 
-type DownloadPhase =
+type LLMStatus =
   | "idle"
   | "checking-cache"
   | "downloading"
@@ -63,9 +64,9 @@ const engine = new MLCEngine({
 type LLMStoreState = {
   models: typeof LLM_MODELS;
   engine: MLCEngine;
-  status: DownloadPhase;
+  status: LLMStatus;
   progress: number;
-  message?: string;
+  timeElapsed: number;
   error?: string;
   currentModelId?: string;
   targetModelId?: string;
@@ -88,7 +89,7 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
         100,
         Math.max(0, Math.round(report.progress * 100))
       );
-      const status: DownloadPhase =
+      const status: LLMStatus =
         progress >= 100
           ? "loading"
           : progress > 0
@@ -99,7 +100,7 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
         ...state,
         status,
         progress,
-        message: report.text,
+        timeElapsed: report.timeElapsed,
       };
     });
   });
@@ -109,7 +110,7 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
     engine,
     status: "idle",
     progress: 0,
-    message: undefined,
+    timeElapsed: 0,
     error: undefined,
     currentModelId: undefined,
     targetModelId: undefined,
@@ -138,17 +139,15 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
         targetModelId: id,
         status: "checking-cache",
         progress: 0,
-        message: "Checking browser cache…",
+        timeElapsed: 0,
         error: undefined,
       });
+      toast.loading(`Loading model ${model.label}...`);
 
       try {
         const cached = await hasModelInCache(model.modelId, prebuiltAppConfig);
         set({
           isCached: cached,
-          message: cached
-            ? "Model found in cache. Loading…"
-            : "Model not cached. Downloading…",
         });
 
         await engine.reload(model.modelId);
@@ -158,11 +157,10 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
           targetModelId: undefined,
           status: "ready",
           progress: 100,
-          message: cached
-            ? `${model.label} loaded from cache.`
-            : `${model.label} downloaded and ready.`,
           error: undefined,
         });
+        toast.dismiss();
+        toast.success(`Model ${model.label} loaded successfully`);
       } catch (err) {
         const description =
           err instanceof Error
@@ -173,10 +171,11 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
         set({
           status: "error",
           error: description,
-          message: "Unable to load model.",
           targetModelId: undefined,
         });
 
+        toast.dismiss();
+        toast.error(`Failed to load model ${model.label}`);
         throw err;
       }
     },
@@ -184,7 +183,7 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
       set({
         status: "idle",
         progress: 0,
-        message: undefined,
+        timeElapsed: 0,
         error: undefined,
         targetModelId: undefined,
       });
@@ -195,12 +194,12 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
     async cleanUpText(text: string): Promise<string> {
       const { currentModelId, status } = get();
       if (!currentModelId || status !== "ready") {
-        return text;
+        throw new Error("Model not ready");
       }
 
       const model = LLM_MODELS.find((m) => m.id === currentModelId);
       if (!model) {
-        return text;
+        throw new Error("Model not found");
       }
 
       try {
@@ -227,19 +226,18 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
           response.choices[0]?.message?.content?.trim() || text;
         return cleanedText;
       } catch (error) {
-        console.error("Error cleaning up text:", error);
-        return text;
+        throw error;
       }
     },
     async tagText(text: string): Promise<string> {
       const { currentModelId, status } = get();
       if (!currentModelId || status !== "ready") {
-        return "";
+        throw new Error("Model not ready");
       }
 
       const model = LLM_MODELS.find((m) => m.id === currentModelId);
       if (!model) {
-        return "";
+        throw new Error("Model not found");
       }
 
       const engine = get().getEngine();
@@ -277,8 +275,7 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
           response.choices[0]?.message?.content?.trim() || "";
         return taggedSections;
       } catch (error) {
-        console.error("Error tagging section:", error);
-        return "";
+        throw error;
       }
     },
   };

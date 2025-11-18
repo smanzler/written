@@ -65,11 +65,6 @@ const Details = () => {
     { section: string; tags: string[] }[] | null
   >(null);
 
-  React.useEffect(() => {
-    console.log("cleanedContent: ", cleanedContent);
-    console.log("taggedSections: ", taggedSections?.[0]);
-  }, [cleanedContent, taggedSections]);
-
   const [year, month, day] = date?.split("-").map(Number) || [];
   const dateObject =
     year && month && day ? new Date(year, month - 1, day) : null;
@@ -133,18 +128,13 @@ const Details = () => {
     if (!journals) return;
     const journal = journals.find((j) => j.id === id);
     if (!journal) return;
-    let doubleParsed;
+    let doubleParsed: { section: string; tags: string[] }[] = [];
     try {
       doubleParsed = JSON.parse(JSON.parse(journal.tagged_sections ?? "[]"));
     } catch (e) {
-      doubleParsed = [];
+      console.error("Error parsing tagged sections:", e);
     }
-    setTaggedSections(
-      doubleParsed.map((section: any) => ({
-        section: section.section,
-        tags: section.tags,
-      }))
-    );
+    setTaggedSections(doubleParsed);
   };
 
   if (!journals || decrypting) return null;
@@ -351,7 +341,11 @@ const Details = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
-            {taggedSections &&
+            {!taggedSections || taggedSections.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No tagged sections found
+              </p>
+            ) : (
               taggedSections.map((section, index) => (
                 <React.Fragment key={index}>
                   <div className="flex flex-row gap-2 justify-between">
@@ -366,7 +360,8 @@ const Details = () => {
                   </div>
                   {index !== taggedSections.length - 1 && <Separator />}
                 </React.Fragment>
-              ))}
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>

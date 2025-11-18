@@ -38,9 +38,9 @@ function Index() {
   const done = async (key?: CryptoKey) => {
     const trimmedInput = userInput.trim();
     if (!trimmedInput) return;
+    let content = trimmedInput;
 
     try {
-      let content = trimmedInput;
       let cleanedContent: string | null = null;
       let taggedSections: string | null = null;
       let journal: Omit<Journal, "id"> | null = null;
@@ -51,16 +51,16 @@ function Index() {
         return;
       }
 
+      reset();
+
+      toast.loading("Saving journal entry.");
+
       if (settings?.aiCleanupEnabled) {
         cleanedContent = await cleanUpText(content);
-
-        console.log("cleanedContent: ", cleanedContent);
       }
 
       if (settings?.aiTaggingEnabled) {
         const result = await tagText(content);
-
-        console.log("taggedSections: ", result);
 
         taggedSections = JSON.stringify(result);
       }
@@ -92,17 +92,21 @@ function Index() {
       }
 
       if (!journal) {
+        toast.dismiss();
         toast.error("Failed to create journal entry");
+        setUserInput(content);
         return;
       }
 
       await db.journals.add(journal);
 
+      toast.dismiss();
       toast.success("Journal entry added successfully");
-      reset();
     } catch (error) {
       console.error("Failed to add journal entry:", error);
-      toast.error("Failed to add journal entry");
+      toast.dismiss();
+      toast.error(error as string);
+      setUserInput(content);
     }
   };
 

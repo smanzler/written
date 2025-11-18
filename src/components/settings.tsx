@@ -66,15 +66,14 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     models: llmModels,
     status: modelStatus,
     progress: modelProgress,
-    message: modelMessage,
+    timeElapsed: modelTimeElapsed,
     error: modelError,
     changeModel,
     currentModelId,
     targetModelId,
   } = useLLMStore();
-  const isModelBusy = ["checking-cache", "downloading", "loading"].includes(
-    modelStatus
-  );
+  const modelDownloading = modelStatus === "downloading";
+  const modelLoading = ["checking-cache", "loading"].includes(modelStatus);
 
   useEffect(() => {
     if (!scrollElement) return;
@@ -99,17 +98,18 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     if (!settings?.selectedModel) return;
     if (targetModelId === settings.selectedModel) return;
     if (currentModelId === settings.selectedModel) return;
-    if (isModelBusy) return;
+    if (modelLoading || modelDownloading) return;
 
-    changeModel(settings.selectedModel).catch(() => {
-      // Errors are surfaced through the store state/toasts.
+    changeModel(settings.selectedModel).catch((e) => {
+      console.error("Error changing model:", e);
     });
   }, [
     settings?.selectedModel,
     changeModel,
     currentModelId,
     targetModelId,
-    isModelBusy,
+    modelLoading,
+    modelDownloading,
   ]);
 
   const handleSavePassword = async (value: string) => {
@@ -193,8 +193,15 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     await saveSettings({ aiCleanupEnabled: checked });
   };
 
-  const handleChangeSelectedModel = async (value: string | undefined) => {
-    if (!value) return;
+  const handleChangeSelectedModel = async (value: string) => {
+    if (value === "none") {
+      await saveSettings({
+        selectedModel: undefined,
+        aiCleanupEnabled: false,
+        aiTaggingEnabled: false,
+      });
+      return;
+    }
 
     try {
       await changeModel(value);
@@ -338,12 +345,12 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                 </FieldContent>
                 <div className="space-y-4 text-xs">
                   <Select
-                    value={settings.selectedModel || undefined}
+                    value={settings.selectedModel || "none"}
                     onValueChange={handleChangeSelectedModel}
-                    disabled={isModelBusy}
+                    disabled={modelLoading || modelDownloading}
                   >
                     <SelectTrigger className="min-w-[220px]">
-                      {isModelBusy ? (
+                      {modelLoading || modelDownloading ? (
                         <div className="flex flex-row gap-2 items-center">
                           <Spinner />
                           Loading model...
@@ -371,18 +378,15 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                           </SelectItemText>
                         </SelectItem>
                       ))}
+                      <SelectItem value="none">None</SelectItem>
                     </SelectContent>
                   </Select>
-                  {isModelBusy && (
+                  {modelDownloading && (
                     <div className="space-y-2">
-                      {modelMessage && (
-                        <div className="flex flex-row justify-between gap-2">
-                          <p className="text-muted-foreground">
-                            {modelMessage}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {modelProgress}%
-                          </p>
+                      {modelTimeElapsed && (
+                        <div className="flex flex-row justify-between gap-2 text-muted-foreground">
+                          <p>{modelProgress}%</p>
+                          <p>{modelTimeElapsed}s</p>
                         </div>
                       )}
                       <Progress value={modelProgress} className="w-full" />
