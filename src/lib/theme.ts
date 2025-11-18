@@ -20,9 +20,12 @@ export function getResolvedTheme(theme: Theme): ResolvedTheme {
  * Applies a theme to the document root element.
  */
 export function applyTheme(theme: Theme, root: HTMLElement) {
-  root.classList.remove("light", "dark");
-  const resolvedTheme = getResolvedTheme(theme);
-  root.classList.add(resolvedTheme);
+  const shouldBeDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  root.classList.toggle("dark", shouldBeDark);
 }
 
 /**
