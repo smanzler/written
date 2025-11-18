@@ -42,13 +42,16 @@ const ColorPicker = ({
         />
       </PopoverTrigger>
       <PopoverContent className="flex flex-col gap-2 justify-center w-fit">
-        <HexColorPicker color={state} onChange={onColorChange} />
+        <HexColorPicker
+          color={state || fallbackColor}
+          onChange={onColorChange}
+        />
         <Input
           maxLength={7}
           onChange={(e) => {
             onColorChange(e?.currentTarget?.value);
           }}
-          value={state}
+          value={state || fallbackColor}
           className="w-full"
         />
 
@@ -79,6 +82,7 @@ const ColorPicker = ({
           className="w-full font-normal"
           onClick={() => {
             onSubmit(undefined);
+            onColorChange(undefined);
             setOpen(false);
           }}
         >
