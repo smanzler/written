@@ -210,8 +210,6 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
           max_tokens: 2000,
         });
 
-        console.log("response: ", response);
-
         const json = JSON.parse(
           response.choices[0]?.message?.content?.trim() || "{}"
         );

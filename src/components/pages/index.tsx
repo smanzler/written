@@ -5,8 +5,8 @@ import { db, Journal } from "@/lib/db";
 import { useSidebar } from "../ui/sidebar";
 import { CheckIcon, RefreshCcw } from "lucide-react";
 import { Button } from "../ui/button";
-import { useSettings } from "@/providers/SettingsProvider";
-import { useJournal } from "@/providers/JournalProvider";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { useJournalStore } from "@/stores/journalStore";
 import LockedDialog from "../ui/locked-dialog";
 import { useLLMStore } from "@/stores/llmStore";
 import TextCarousel from "../ui/text-carousel";
@@ -17,8 +17,8 @@ function Index() {
   const prevInputRef = useRef<string>("");
   const { open, setOpen } = useSidebar();
   const [isFocused, setIsFocused] = useState(false);
-  const { settings } = useSettings();
-  const { encryptText, isUnlocked } = useJournal();
+  const { settings } = useSettingsStore();
+  const { encryptText, isUnlocked } = useJournalStore();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const { cleanUpText } = useLLMStore();
 

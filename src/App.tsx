@@ -7,32 +7,33 @@ import { useIsMobile } from "./hooks/use-mobile";
 import { BrowserRouter, Route } from "react-router";
 import { Routes } from "react-router";
 import Details from "./components/pages/details";
-import { JournalProvider } from "./providers/JournalProvider";
 import Header from "./components/header";
-import { SettingsProvider } from "./providers/SettingsProvider";
+import { useSettingsStore } from "./stores/settingsStore";
+import { useEffect } from "react";
 
 function App() {
   const isMobile = useIsMobile();
+  const initialize = useSettingsStore((state) => state.initialize);
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   return (
     <ThemeProvider>
-      <SettingsProvider>
-        <JournalProvider>
-          <SidebarProvider defaultOpen={false}>
-            <BrowserRouter>
-              <AppSidebar collapsible="icon" />
-              <SidebarInset>
-                <Header />
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/:date" element={<Details />} />
-                </Routes>
-              </SidebarInset>
-              <Toaster position={isMobile ? "top-center" : "bottom-right"} />
-            </BrowserRouter>
-          </SidebarProvider>
-        </JournalProvider>
-      </SettingsProvider>
+      <SidebarProvider defaultOpen={false}>
+        <BrowserRouter>
+          <AppSidebar collapsible="icon" />
+          <SidebarInset>
+            <Header />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/:date" element={<Details />} />
+            </Routes>
+          </SidebarInset>
+          <Toaster position={isMobile ? "top-center" : "bottom-right"} />
+        </BrowserRouter>
+      </SidebarProvider>
     </ThemeProvider>
   );
 }

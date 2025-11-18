@@ -1,8 +1,8 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { getJournalDates, getJournalsByDate } from "./client";
-import { useJournal } from "@/providers/JournalProvider";
+import { useJournalStore } from "@/stores/journalStore";
 import { useEffect, useMemo, useState } from "react";
-import { useSettings } from "@/providers/SettingsProvider";
+import { useSettingsStore } from "@/stores/settingsStore";
 import type { Journal } from "@/lib/db";
 
 type JournalBlob = {
@@ -26,8 +26,8 @@ export const useDecryptedJournalsByDate = (
   date?: Date
 ): UseDecryptedJournalsByDateReturn => {
   const journals = useJournalsByDate(date);
-  const { decryptText, isUnlocked } = useJournal();
-  const { settings } = useSettings();
+  const { decryptText, isUnlocked } = useJournalStore();
+  const { settings } = useSettingsStore();
 
   const [decrypted, setDecrypted] = useState<Map<number, JournalBlob>>(
     new Map()
@@ -48,7 +48,6 @@ export const useDecryptedJournalsByDate = (
       const entries = await Promise.all(
         journals.map(async (journal) => {
           if (!journal.is_encrypted) {
-            console.log("journal.raw_blob: ", journal.raw_blob);
             return [journal.id!, JSON.parse(journal.raw_blob ?? "{}")] as const;
           }
 
@@ -56,7 +55,6 @@ export const useDecryptedJournalsByDate = (
             if (!journal.encrypted_blob) {
               return [journal.id!, { error: "[Decryption failed]" }] as const;
             }
-            console.log("journal.encrypted_blob: ", journal.encrypted_blob);
             const { cipher, iv } = JSON.parse(journal.encrypted_blob);
             const blob = await decryptText(cipher, iv);
             return [journal.id!, JSON.parse(blob)] as const;

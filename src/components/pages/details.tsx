@@ -21,8 +21,8 @@ import {
   X,
 } from "lucide-react";
 import { useDecryptedJournalsByDate } from "@/dexie/journals/queries";
-import { useJournal } from "@/providers/JournalProvider";
-import { useSettings } from "@/providers/SettingsProvider";
+import { useJournalStore } from "@/stores/journalStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import LockedDialog from "../ui/locked-dialog";
 import { useState } from "react";
 import {
@@ -50,8 +50,8 @@ import {
 
 const Details = () => {
   const { date } = useParams();
-  const { isUnlocked, encryptText } = useJournal();
-  const { settings } = useSettings();
+  const { isUnlocked, encryptText } = useJournalStore();
+  const { settings } = useSettingsStore();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [content, setContent] = useState("");

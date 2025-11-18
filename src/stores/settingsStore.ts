@@ -1,5 +1,5 @@
+import { create } from "zustand";
 import { db, Settings } from "@/lib/db";
-import React, { createContext, useContext, useEffect, useState } from "react";
 
 type SettingsState = {
   id: number;
@@ -9,12 +9,6 @@ type SettingsState = {
   cleanupEnabled: boolean;
   cleanupPrompt: string;
   selectedModel: string | undefined;
-};
-
-type SettingsContextType = {
-  settings: SettingsState;
-  saving: boolean;
-  saveSettings: (newSettings: Partial<Settings>) => Promise<void>;
 };
 
 const cssColorToHex = (cssColor: string): string => {
@@ -62,12 +56,15 @@ const getDefaultSettings = (): SettingsState => {
   };
 };
 
-export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [settings, setSettings] = useState<SettingsState>();
-  const [saving, setSaving] = useState(false);
+type SettingsStoreState = {
+  settings: SettingsState;
+  saving: boolean;
+  initialized: boolean;
+  saveSettings: (newSettings: Partial<Settings>) => Promise<void>;
+  initialize: () => Promise<void>;
+};
 
+export const useSettingsStore = create<SettingsStoreState>((set, get) => {
   const getStoredSettings = async () => {
     const storedSettings = await db.settings.get(1);
     return storedSettings;
@@ -83,40 +80,28 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     ) as Partial<T>;
   };
 
-  const saveSettings = async (newSettings: Partial<Settings>) => {
-    setSaving(true);
-    const current = await getStoredSettings();
-    const joinedSettings = removeUndefined({ ...current, ...newSettings });
-    await db.settings.put({ id: 1, ...joinedSettings });
-    setSettings({ ...getDefaultSettings(), ...joinedSettings });
-    setSaving(false);
+  return {
+    settings: getDefaultSettings(),
+    saving: false,
+    initialized: false,
+    async initialize() {
+      if (get().initialized) return;
+
+      const storedSettings = await getStoredSettings();
+      set({
+        settings: { ...getDefaultSettings(), ...storedSettings },
+        initialized: true,
+      });
+    },
+    async saveSettings(newSettings: Partial<Settings>) {
+      set({ saving: true });
+      const current = await getStoredSettings();
+      const joinedSettings = removeUndefined({ ...current, ...newSettings });
+      await db.settings.put({ id: 1, ...joinedSettings });
+      set({
+        settings: { ...getDefaultSettings(), ...joinedSettings },
+        saving: false,
+      });
+    },
   };
-
-  const initialize = async () => {
-    const storedSettings = await getStoredSettings();
-    setSettings({ ...getDefaultSettings(), ...storedSettings });
-  };
-
-  useEffect(() => {
-    initialize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (!settings) return null;
-
-  return (
-    <SettingsContext.Provider
-      value={{
-        settings,
-        saving,
-        saveSettings,
-      }}
-    >
-      {children}
-    </SettingsContext.Provider>
-  );
-};
-
-const SettingsContext = createContext<SettingsContextType | null>(null);
-// eslint-disable-next-line react-refresh/only-export-components
-export const useSettings = () => useContext(SettingsContext)!;
+});

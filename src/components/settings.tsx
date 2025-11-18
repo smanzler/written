@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { useJournal } from "@/providers/JournalProvider";
+import { useJournalStore } from "@/stores/journalStore";
 import {
   Sheet,
   SheetClose,
@@ -18,7 +18,7 @@ import {
   SheetTitle,
 } from "./ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSettings } from "@/providers/SettingsProvider";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { Switch } from "./ui/switch";
 import { toast } from "sonner";
 import LockedDialog from "./ui/locked-dialog";
@@ -55,12 +55,12 @@ const EXAMPLE_TEXT = "Hello World";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
-  const { settings, saveSettings } = useSettings();
+  const { settings, saveSettings } = useSettingsStore();
   const [passwordDialogShown, setPasswordDialogShown] = useState(false);
   const [removeKeyDialogShown, setRemoveKeyDialogShown] = useState(false);
   const [password, setPassword] = useState("");
   const { enableEncryption, disableEncryption, lock, isUnlocked } =
-    useJournal();
+    useJournalStore();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const [cleanupPrompt, setCleanupPrompt] = useState<string | undefined>(
     undefined
@@ -222,8 +222,6 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     await saveSettings({ cleanupPrompt: cleanupPrompt });
     setCleanupPrompt(undefined);
   };
-
-  if (!settings) return null;
 
   return (
     <Sheet {...props}>

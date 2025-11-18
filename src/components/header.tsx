@@ -1,19 +1,19 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarTrigger } from "./ui/sidebar";
 import { ModeToggle } from "./mode-toggle";
-import { useJournal } from "@/providers/JournalProvider";
+import { useJournalStore } from "@/stores/journalStore";
 import { Lock, Settings, Unlock } from "lucide-react";
 import { Button } from "./ui/button";
-import { useSettings } from "@/providers/SettingsProvider";
+import { useSettingsStore } from "@/stores/settingsStore";
 import LockedDialog from "./ui/locked-dialog";
 import { useState } from "react";
 import SettingsSheet from "./settings";
 
 const Header = () => {
   const isMobile = useIsMobile();
-  const { isUnlocked, lock } = useJournal();
+  const { isUnlocked, lock } = useJournalStore();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
-  const { settings } = useSettings();
+  const { settings } = useSettingsStore();
   const [openSettings, setOpenSettings] = useState(false);
 
   return (

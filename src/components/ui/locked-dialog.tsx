@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "./dialog";
 import { Button } from "./button";
-import { useJournal } from "@/providers/JournalProvider";
+import { useJournalStore } from "@/stores/journalStore";
 import { toast } from "sonner";
 import PasswordOTP from "./password-otp";
 
@@ -20,7 +20,7 @@ const LockedDialog = ({
 }: React.ComponentProps<typeof Dialog> & {
   onUnlock?: (key: CryptoKey | null) => void;
 }) => {
-  const { unlock } = useJournal();
+  const { unlock } = useJournalStore();
   const [password, setPassword] = useState("");
 
   const handlePasswordChange = (value: string) => {
