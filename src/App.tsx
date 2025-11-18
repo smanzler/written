@@ -8,30 +8,33 @@ import { Routes } from "react-router";
 import Details from "./components/pages/details";
 import Header from "./components/header";
 import { useSettingsStore } from "./stores/settingsStore";
+import { useAuthStore } from "./stores/authStore";
 import { useEffect } from "react";
 
 function App() {
   const isMobile = useIsMobile();
-  const initialize = useSettingsStore((state) => state.initialize);
+  const initializeSettings = useSettingsStore((state) => state.initialize);
+  const initializeAuth = useAuthStore((state) => state.initialize);
 
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    initializeSettings();
+    initializeAuth();
+  }, [initializeSettings, initializeAuth]);
 
   return (
-      <SidebarProvider defaultOpen={false}>
-        <BrowserRouter>
-          <AppSidebar collapsible="icon" />
-          <SidebarInset>
-            <Header />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/:date" element={<Details />} />
-            </Routes>
-          </SidebarInset>
-          <Toaster position={isMobile ? "top-center" : "bottom-right"} />
-        </BrowserRouter>
-      </SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
+      <BrowserRouter>
+        <AppSidebar collapsible="icon" />
+        <SidebarInset>
+          <Header />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/:date" element={<Details />} />
+          </Routes>
+        </SidebarInset>
+        <Toaster position={isMobile ? "top-center" : "bottom-right"} />
+      </BrowserRouter>
+    </SidebarProvider>
   );
 }
 
