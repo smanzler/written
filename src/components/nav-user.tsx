@@ -15,8 +15,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { EllipsisVertical, Settings } from "lucide-react";
-import { useState } from "react";
-import SettingsSheet from "./settings";
 
 export function NavUser() {
   const user = {
@@ -26,8 +24,6 @@ export function NavUser() {
   };
 
   const { isMobile } = useSidebar();
-
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <SidebarMenu>
@@ -77,7 +73,7 @@ export function NavUser() {
                 <UserCircle />
                 Account
               </DropdownMenuItem> */}
-              <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
+              <DropdownMenuItem>
                 <Settings />
                 Settings
               </DropdownMenuItem>
@@ -90,7 +86,6 @@ export function NavUser() {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
-      <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
     </SidebarMenu>
   );
 }

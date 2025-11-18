@@ -46,8 +46,9 @@ import { SelectItemText } from "@radix-ui/react-select";
 import { useLLMStore } from "@/stores/llmStore";
 import { Progress } from "./ui/progress";
 import { cn } from "@/lib/utils";
-import { XIcon } from "lucide-react";
+import { Info, Sparkles, XIcon } from "lucide-react";
 import { Textarea } from "./ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -222,7 +223,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
         side={isMobile ? "bottom" : "right"}
         className={cn(
           isMobile ? "max-h-[80vh]" : "pb-16",
-          "overflow-y-auto overflow-x-hidden [&>button]:hidden"
+          "overflow-y-auto overflow-x-hidden [&>button]:hidden no-scrollbar"
         )}
       >
         <SheetHeader
@@ -302,110 +303,124 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
 
           <FieldSeparator />
 
-          <FieldSet>
-            <FieldLegend>AI</FieldLegend>
-            <FieldDescription>
-              Customize the AI settings for your journal.
-            </FieldDescription>
-            <FieldGroup className="gap-2">
-              <Field orientation="horizontal">
-                <FieldContent>
-                  <FieldLabel>Cleanup Text Entries</FieldLabel>
-                  <FieldDescription>
-                    Enable cleanup of text entries with AI.
-                  </FieldDescription>
-                </FieldContent>
-                <Switch
-                  checked={settings.cleanupEnabled}
-                  onCheckedChange={handleChangeAiCleanupEnabled}
-                />
-              </Field>
-              <Textarea
-                value={
-                  cleanupPrompt === undefined
-                    ? settings.cleanupPrompt || ""
-                    : cleanupPrompt
-                }
-                onChange={(e) => setCleanupPrompt(e.target.value)}
-                disabled={!settings.cleanupEnabled}
-                className="resize-none wrap-anywhere peer pr-9"
-                onBlur={handleSaveCleanupPrompt}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    e.currentTarget.blur();
-                    handleSaveCleanupPrompt();
+          <div className="flex flex-col gap-2">
+            <Alert>
+              <Info className="size-4" />
+              <AlertTitle>AI Features</AlertTitle>
+              <AlertDescription>
+                AI features work by downloading a public model to the browser's
+                memory. This may use a lot of GPU and battery, but models can be
+                used offline once downloaded.
+              </AlertDescription>
+            </Alert>
+            <FieldSet>
+              <FieldLegend className="flex flex-row items-center gap-2 justify-between w-full">
+                AI
+                <Sparkles className="size-4" />
+              </FieldLegend>
+              <FieldDescription>
+                Customize the AI settings for your journal.
+              </FieldDescription>
+              <FieldGroup className="gap-2">
+                <Field orientation="horizontal">
+                  <FieldContent>
+                    <FieldLabel>Cleanup Text Entries</FieldLabel>
+                    <FieldDescription>
+                      Enable cleanup of text entries with AI.
+                    </FieldDescription>
+                  </FieldContent>
+                  <Switch
+                    checked={settings.cleanupEnabled}
+                    onCheckedChange={handleChangeAiCleanupEnabled}
+                  />
+                </Field>
+                <Textarea
+                  value={
+                    cleanupPrompt === undefined
+                      ? settings.cleanupPrompt || ""
+                      : cleanupPrompt
                   }
-                }}
-              />
-              <p className="text-xs text-muted-foreground">
-                The prompt to use for AI cleanup.
-              </p>
-            </FieldGroup>
-            <FieldGroup>
-              <Field>
-                <FieldContent>
-                  <FieldLabel>Selected Model</FieldLabel>
-                  <FieldDescription>
-                    Select the model to use for AI tagging and cleanup.
-                  </FieldDescription>
-                </FieldContent>
-                <div className="space-y-4 text-xs">
-                  <Select
-                    value={settings.selectedModel || "none"}
-                    onValueChange={handleChangeSelectedModel}
-                    disabled={modelLoading || modelDownloading}
-                  >
-                    <SelectTrigger className="min-w-[220px]">
-                      {modelLoading || modelDownloading ? (
-                        <div className="flex flex-row gap-2 items-center">
-                          <Spinner />
-                          Loading model...
-                        </div>
-                      ) : (
-                        <SelectValue>
-                          {settings.selectedModel
-                            ? llmModels.find(
-                                (model) => model.id === settings.selectedModel
-                              )?.label
-                            : "Choose a model"}
-                        </SelectValue>
-                      )}
-                    </SelectTrigger>
-                    <SelectContent align="end">
-                      {llmModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          <SelectItemText>
-                            <div className="flex flex-col text-left">
-                              <span>{model.label}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {model.description} · {model.vram}
-                              </span>
-                            </div>
-                          </SelectItemText>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="none">None</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {modelDownloading && (
-                    <div className="space-y-2">
-                      {modelTimeElapsed && (
-                        <div className="flex flex-row justify-between gap-2 text-muted-foreground">
-                          <p>{modelProgress}%</p>
-                          <p>{modelTimeElapsed}s</p>
-                        </div>
-                      )}
-                      <Progress value={modelProgress} className="w-full" />
-                    </div>
-                  )}
-                  {modelError && (
-                    <p className="text-destructive">{modelError}</p>
-                  )}
-                </div>
-              </Field>
-            </FieldGroup>
-          </FieldSet>
+                  onChange={(e) => setCleanupPrompt(e.target.value)}
+                  disabled={!settings.cleanupEnabled}
+                  className="resize-none wrap-anywhere peer pr-9"
+                  onBlur={handleSaveCleanupPrompt}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                      handleSaveCleanupPrompt();
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  The prompt to use for AI cleanup.
+                </p>
+              </FieldGroup>
+              <FieldGroup>
+                <Field>
+                  <FieldContent>
+                    <FieldLabel>Selected Model</FieldLabel>
+                    <FieldDescription>
+                      Select the model to use for AI tagging and cleanup.
+                    </FieldDescription>
+                  </FieldContent>
+                  <div className="space-y-4 text-xs">
+                    <Select
+                      value={settings.selectedModel || "none"}
+                      onValueChange={handleChangeSelectedModel}
+                      disabled={modelLoading || modelDownloading}
+                    >
+                      <SelectTrigger className="min-w-[220px]">
+                        {modelLoading || modelDownloading ? (
+                          <div className="flex flex-row gap-2 items-center">
+                            <Spinner />
+                            Loading model...
+                          </div>
+                        ) : (
+                          <SelectValue>
+                            {settings.selectedModel
+                              ? llmModels.find(
+                                  (model) => model.id === settings.selectedModel
+                                )?.label
+                              : "Choose a model"}
+                          </SelectValue>
+                        )}
+                      </SelectTrigger>
+                      <SelectContent align="end">
+                        {llmModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            <SelectItemText>
+                              <div className="flex flex-col text-left">
+                                <span>{model.label}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {model.description} · {model.vram}
+                                </span>
+                              </div>
+                            </SelectItemText>
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {modelDownloading && (
+                      <div className="space-y-2">
+                        {modelTimeElapsed && (
+                          <div className="flex flex-row justify-between gap-2 text-muted-foreground">
+                            <p>{modelProgress}%</p>
+                            <p>{modelTimeElapsed}s</p>
+                          </div>
+                        )}
+                        <Progress value={modelProgress} className="w-full" />
+                      </div>
+                    )}
+                    {modelError && (
+                      <p className="text-destructive">{modelError}</p>
+                    )}
+                  </div>
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+          </div>
         </FieldGroup>
       </SheetContent>
 
