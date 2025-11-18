@@ -1,7 +1,6 @@
 import { SidebarInset, SidebarProvider } from "./components/ui/sidebar";
 import { AppSidebar } from "./components/app-sidebar";
 import Index from "./components/pages/index";
-import { ThemeProvider } from "./components/theme-provider";
 import { Toaster } from "./components/ui/sonner";
 import { useIsMobile } from "./hooks/use-mobile";
 import { BrowserRouter, Route } from "react-router";
@@ -20,7 +19,6 @@ function App() {
   }, [initialize]);
 
   return (
-    <ThemeProvider>
       <SidebarProvider defaultOpen={false}>
         <BrowserRouter>
           <AppSidebar collapsible="icon" />
@@ -34,7 +32,6 @@ function App() {
           <Toaster position={isMobile ? "top-center" : "bottom-right"} />
         </BrowserRouter>
       </SidebarProvider>
-    </ThemeProvider>
   );
 }
 
