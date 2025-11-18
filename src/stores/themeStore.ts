@@ -1,58 +1,67 @@
 import { create } from "zustand";
-
-type Theme = "dark" | "light" | "system";
-
-function applyTheme(theme: Theme, root: HTMLElement) {
-  root.classList.remove("light", "dark");
-
-  if (theme === "system") {
-    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-      .matches
-      ? "dark"
-      : "light";
-
-    root.classList.add(systemTheme);
-    return;
-  }
-
-  root.classList.add(theme);
-}
-
-if (typeof window !== "undefined") {
-  const storageKey = "vite-ui-theme";
-  const defaultTheme = "system";
-  const storedTheme =
-    (localStorage.getItem(storageKey) as Theme) || defaultTheme;
-  applyTheme(storedTheme, document.documentElement);
-}
+import {
+  applyTheme,
+  getInitialTheme,
+  getResolvedTheme,
+  THEME_STORAGE_KEY,
+  type Theme,
+} from "@/lib/theme";
 
 type ThemeStoreState = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
 };
 
-const STORAGE_KEY = "vite-ui-theme";
+let systemThemeHandler: ((e: MediaQueryListEvent) => void) | null = null;
 
-export const useThemeStore = create<ThemeStoreState>((set) => {
-  const getInitialTheme = (): Theme => {
-    if (typeof window === "undefined") return "system";
-    return (localStorage.getItem(STORAGE_KEY) as Theme) || "system";
-  };
-
-  const initialTheme = getInitialTheme();
+export const useThemeStore = create<ThemeStoreState>((set, get) => {
+  const initialTheme = getInitialTheme(THEME_STORAGE_KEY);
 
   if (typeof window !== "undefined") {
     applyTheme(initialTheme, document.documentElement);
+
+    if (initialTheme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      systemThemeHandler = () => {
+        const currentTheme = get().theme;
+        if (currentTheme === "system") {
+          applyTheme("system", document.documentElement);
+        }
+      };
+      mediaQuery.addEventListener("change", systemThemeHandler);
+    }
   }
 
   return {
     theme: initialTheme,
     setTheme: (theme: Theme) => {
       if (typeof window !== "undefined") {
-        localStorage.setItem(STORAGE_KEY, theme);
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
         applyTheme(theme, document.documentElement);
+
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+        if (systemThemeHandler) {
+          mediaQuery.removeEventListener("change", systemThemeHandler);
+          systemThemeHandler = null;
+        }
+
+        if (theme === "system") {
+          systemThemeHandler = () => {
+            const currentTheme = get().theme;
+            if (currentTheme === "system") {
+              applyTheme("system", document.documentElement);
+            }
+          };
+          mediaQuery.addEventListener("change", systemThemeHandler);
+        }
       }
       set({ theme });
     },
   };
 });
+
+export function useResolvedTheme(): "dark" | "light" {
+  const theme = useThemeStore((state) => state.theme);
+  return getResolvedTheme(theme);
+}
