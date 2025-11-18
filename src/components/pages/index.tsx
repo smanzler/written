@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useLayoutEffect } from "react";
+import { useState, useRef, useMemo } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { db, Journal } from "@/lib/db";
@@ -9,16 +9,10 @@ import { useSettings } from "@/providers/SettingsProvider";
 import { useJournal } from "@/providers/JournalProvider";
 import LockedDialog from "../ui/locked-dialog";
 import { useLLMStore } from "@/stores/llmStore";
-
-function getRainbowColor(index: number): string {
-  const hue = (index * 10) % 360;
-  return `hsl(${hue}, 100%, 50%)`;
-}
+import TextCarousel from "../ui/text-carousel";
 
 function Index() {
   const [userInput, setUserInput] = useState<string>("");
-  const [translateX, setTranslateX] = useState(0);
-  const textRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevInputRef = useRef<string>("");
   const { open, setOpen } = useSidebar();
@@ -44,7 +38,7 @@ function Index() {
       let cleanedContent: string | null = null;
       let journal: Omit<Journal, "id"> | null = null;
 
-      if (!isUnlocked && settings?.lockEnabled && !key) {
+      if (!isUnlocked && settings.lockEnabled && !key) {
         inputRef.current?.blur();
         setOpenLockedDialog(true);
         return;
@@ -54,7 +48,7 @@ function Index() {
 
       toast.loading("Saving journal entry.");
 
-      if (settings?.cleanupEnabled && settings.cleanupPrompt) {
+      if (settings.cleanupEnabled && settings.cleanupPrompt) {
         const { body } = await cleanUpText(content, settings.cleanupPrompt);
         cleanedContent = body;
       }
@@ -64,7 +58,7 @@ function Index() {
         cleaned_content: cleanedContent,
       };
 
-      if (settings?.lockEnabled) {
+      if (settings.lockEnabled) {
         const result = await encryptText(JSON.stringify(blob), key);
 
         journal = {
@@ -106,14 +100,6 @@ function Index() {
       setUserInput(content);
     }
   };
-
-  useLayoutEffect(() => {
-    if (textRef.current) {
-      const width = textRef.current.scrollWidth;
-      const translate = -width;
-      setTranslateX(translate);
-    }
-  }, [userInput]);
 
   const focusInput = () => {
     if (inputRef.current) inputRef.current.focus();
@@ -159,82 +145,15 @@ function Index() {
         spellCheck={false}
         inputMode="text"
       />
-      <div
-        className="relative w-0 whitespace-nowrap text-center"
-        onTouchStart={focusInput}
-        onClick={focusInput}
-      >
-        <motion.div
-          ref={textRef}
-          className="text-[4rem] inline-flex items-center h-24 whitespace-pre"
-          style={{ color: settings?.textColor }}
-          animate={{ x: translateX }}
-          transition={{
-            type: "spring",
-            stiffness: 100,
-            damping: 20,
-          }}
-        >
-          {(() => {
-            let cumulativeIndex = 0;
-
-            return tokens.map((token, index) => {
-              const startIndex = cumulativeIndex;
-              cumulativeIndex += token.length;
-
-              return (
-                <motion.span
-                  key={index}
-                  animate={{
-                    opacity: index >= tokens.length - (typing ? 1 : 2) ? 1 : 0,
-                    visibility:
-                      index < tokens.length - (typing ? 1 : 2)
-                        ? "hidden"
-                        : "visible",
-                  }}
-                  transition={{
-                    duration: 0.5,
-                    ease: "easeInOut",
-                  }}
-                >
-                  {settings?.textColor === "rainbow"
-                    ? token.split("").map((char, charIndex) => (
-                        <span
-                          key={charIndex}
-                          style={{
-                            color: getRainbowColor(startIndex + charIndex),
-                          }}
-                        >
-                          {char}
-                        </span>
-                      ))
-                    : token}
-                </motion.span>
-              );
-            });
-          })()}
-          <motion.span
-            animate={{
-              opacity: isFocused ? [1, 0.4, 1] : 0,
-            }}
-            transition={
-              isFocused
-                ? {
-                    duration: 1,
-                    repeat: Infinity,
-                    repeatType: "loop",
-                    ease: "easeInOut",
-                  }
-                : {
-                    duration: 0.1,
-                    ease: "easeInOut",
-                  }
-            }
-            className="w-1 h-16 ml-1 rounded-full"
-            style={{ backgroundColor: settings?.cursorColor }}
-          />
-        </motion.div>
-      </div>
+      <TextCarousel
+        tokens={tokens}
+        typing={typing}
+        isFocused={isFocused}
+        userInput={userInput}
+        textColor={settings.textColor || "#000000"}
+        cursorColor={settings.cursorColor || "#000000"}
+        focusInput={focusInput}
+      />
 
       <div className="flex flex-row mt-4">
         <motion.div

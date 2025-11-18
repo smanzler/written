@@ -121,7 +121,7 @@ const Details = () => {
 
   if (!journals || decrypting) return null;
 
-  if (!isUnlocked && settings?.lockEnabled) {
+  if (!isUnlocked && settings.lockEnabled) {
     return (
       <>
         <Empty className="max-w-md mx-auto">

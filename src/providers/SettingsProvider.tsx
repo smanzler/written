@@ -12,7 +12,7 @@ type SettingsState = {
 };
 
 type SettingsContextType = {
-  settings?: SettingsState;
+  settings: SettingsState;
   saving: boolean;
   saveSettings: (newSettings: Partial<Settings>) => Promise<void>;
 };
@@ -101,6 +101,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     initialize();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (!settings) return null;
 
   return (
     <SettingsContext.Provider

@@ -27,7 +27,7 @@ const Header = () => {
         >
           <Settings />
         </Button>
-        {settings?.lockEnabled &&
+        {settings.lockEnabled &&
           (isUnlocked ? (
             <Button variant="ghost" onClick={lock}>
               <Unlock />

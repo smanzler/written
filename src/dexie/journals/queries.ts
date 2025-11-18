@@ -35,7 +35,7 @@ export const useDecryptedJournalsByDate = (
   const [decrypting, setDecrypting] = useState(false);
 
   useEffect(() => {
-    if (!journals || !isUnlocked || !settings?.lockEnabled) {
+    if (!journals || !isUnlocked || !settings.lockEnabled) {
       setDecrypted(new Map());
       return;
     }
@@ -77,7 +77,7 @@ export const useDecryptedJournalsByDate = (
     return () => {
       cancelled = true;
     };
-  }, [journals, isUnlocked, settings?.lockEnabled, decryptText]);
+  }, [journals, isUnlocked, settings.lockEnabled, decryptText]);
 
   const merged = useMemo((): DecryptedJournal[] => {
     if (!journals) return [];

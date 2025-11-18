@@ -49,6 +49,9 @@ import { cn } from "@/lib/utils";
 import { Info, Sparkles, XIcon } from "lucide-react";
 import { Textarea } from "./ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import PreviewText from "./ui/preview-text";
+
+const EXAMPLE_TEXT = "Hello World";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -61,6 +64,12 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const [cleanupPrompt, setCleanupPrompt] = useState<string | undefined>(
     undefined
+  );
+  const [cursorColor, setCursorColor] = useState<string | undefined>(
+    settings.cursorColor
+  );
+  const [textColor, setTextColor] = useState<string | undefined>(
+    settings.textColor
   );
   const [lockLoading, setLockLoading] = useState(false);
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
@@ -100,7 +109,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   }, []);
 
   useEffect(() => {
-    if (!settings?.selectedModel) return;
+    if (!settings.selectedModel) return;
     if (targetModelId === settings.selectedModel) return;
     if (currentModelId === settings.selectedModel) return;
     if (modelLoading || modelDownloading) return;
@@ -109,7 +118,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
       console.error("Error changing model:", e);
     });
   }, [
-    settings?.selectedModel,
+    settings.selectedModel,
     changeModel,
     currentModelId,
     targetModelId,
@@ -181,7 +190,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   };
 
   const handleChangeAiCleanupEnabled = async (checked: boolean) => {
-    if (!settings?.selectedModel) {
+    if (!settings.selectedModel) {
       toast.error("Please select a model before enabling AI cleanup.");
       return;
     }
@@ -272,20 +281,22 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
             <FieldDescription>
               Customize the appearance of your journal.
             </FieldDescription>
-            <FieldGroup>
-              <Field orientation="horizontal">
-                <FieldContent>
-                  <FieldLabel>Cursor color</FieldLabel>
-                  <FieldDescription>
-                    Change the color of the cursor in the journal.
-                  </FieldDescription>
-                </FieldContent>
-                <ColorPicker
-                  value={settings.cursorColor}
-                  onSubmit={handleChangeCursorColor}
-                />
-              </Field>
 
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">Preview</p>
+              <div className="w-full flex flex-col items-center justify-center">
+                {props.open && (
+                  <PreviewText
+                    text={EXAMPLE_TEXT}
+                    textColor={textColor || settings.textColor || "#000000"}
+                    cursorColor={
+                      cursorColor || settings.cursorColor || "#000000"
+                    }
+                  />
+                )}
+              </div>
+            </div>
+            <FieldGroup>
               <Field orientation="horizontal">
                 <FieldContent>
                   <FieldLabel>Text color</FieldLabel>
@@ -294,8 +305,25 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                   </FieldDescription>
                 </FieldContent>
                 <ColorPicker
-                  value={settings.textColor}
+                  state={textColor}
+                  fallbackColor={settings.textColor || "#000000"}
+                  onColorChange={setTextColor}
                   onSubmit={handleChangeTextColor}
+                />
+              </Field>
+
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>Cursor color</FieldLabel>
+                  <FieldDescription>
+                    Change the color of the cursor in the journal.
+                  </FieldDescription>
+                </FieldContent>
+                <ColorPicker
+                  state={cursorColor}
+                  fallbackColor={settings.cursorColor || "#000000"}
+                  onColorChange={setCursorColor}
+                  onSubmit={handleChangeCursorColor}
                 />
               </Field>
             </FieldGroup>

@@ -1,100 +1,91 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from "./dialog";
-import { Card, CardContent, CardFooter, CardHeader } from "./card";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 interface ColorPickerProps {
   onSubmit: (color: string | undefined) => void;
-  value: string | undefined;
+  state: string | undefined;
+  fallbackColor: string;
+  onColorChange: (color: string | undefined) => void;
 }
 
-const ColorPicker = ({ onSubmit, value }: ColorPickerProps) => {
-  const [color, setColor] = useState<string | undefined>(value);
+const ColorPicker = ({
+  onSubmit,
+  state,
+  fallbackColor,
+  onColorChange,
+}: ColorPickerProps) => {
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    setColor(value);
-  }, [value]);
-
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
-      <DialogTrigger asChild>
+    <Popover
+      onOpenChange={(open) => {
+        setOpen(open);
+        if (!open) {
+          onColorChange(undefined);
+        }
+      }}
+      open={open}
+    >
+      <PopoverTrigger asChild>
         <Button
           onClick={() => {
             setOpen(true);
           }}
           variant="outline"
           size="icon-sm"
-          style={{ backgroundColor: value }}
+          style={{ backgroundColor: state || fallbackColor }}
         />
-      </DialogTrigger>
-      <DialogContent
-        className="flex-1 justify-center"
-        style={{ backgroundColor: color }}
-      >
-        <Card className="gap-4">
-          <CardHeader>
-            <DialogTitle>Color Picker</DialogTitle>
-            <DialogDescription>
-              Select a color to use in your journal.
-            </DialogDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4 w-full">
-            <HexColorPicker color={color} onChange={setColor} />
-            <Input
-              maxLength={7}
-              onChange={(e) => {
-                setColor(e?.currentTarget?.value);
-              }}
-              value={color}
-            />
-          </CardContent>
+      </PopoverTrigger>
+      <PopoverContent className="flex flex-col gap-2 justify-center w-fit">
+        <HexColorPicker color={state} onChange={onColorChange} />
+        <Input
+          maxLength={7}
+          onChange={(e) => {
+            onColorChange(e?.currentTarget?.value);
+          }}
+          value={state}
+          className="w-full"
+        />
 
-          <CardFooter className="flex-row gap-2">
-            <DialogClose asChild>
-              <Button
-                variant="secondary"
-                onClick={() => setOpen(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button
-              onClick={() => {
-                onSubmit(color);
-                setOpen(false);
-              }}
-              className="flex-1"
-            >
-              Save
-            </Button>
-          </CardFooter>
+        <div className="flex flex-row gap-2 w-full">
           <Button
-            variant="link"
-            size="sm"
-            className="w-full font-normal"
+            variant="secondary"
             onClick={() => {
-              onSubmit(undefined);
+              onColorChange(fallbackColor);
               setOpen(false);
             }}
+            className="flex-1"
           >
-            Reset to default
+            Cancel
           </Button>
-        </Card>
-      </DialogContent>
-    </Dialog>
+          <Button
+            onClick={() => {
+              onSubmit(state);
+              setOpen(false);
+            }}
+            className="flex-1"
+          >
+            Save
+          </Button>
+        </div>
+        <Button
+          variant="link"
+          size="sm"
+          className="w-full font-normal"
+          onClick={() => {
+            onSubmit(undefined);
+            setOpen(false);
+          }}
+        >
+          Reset to default
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 };
 
