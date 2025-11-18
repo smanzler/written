@@ -1,22 +1,14 @@
 import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useThemeStore } from "@/stores/themeStore";
+import { useResolvedTheme, useThemeStore } from "@/stores/themeStore";
 
 export function ModeToggle({ ...props }: React.ComponentProps<typeof Button>) {
-  const theme = useThemeStore((state) => state.theme);
+  const theme = useResolvedTheme();
   const setTheme = useThemeStore((state) => state.setTheme);
 
   const handleToggle = () => {
-    let nextTheme: "dark" | "light";
-    if (theme === "system") {
-      nextTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "light"
-        : "dark";
-    } else {
-      nextTheme = theme === "dark" ? "light" : "dark";
-    }
-    setTheme(nextTheme);
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   return (

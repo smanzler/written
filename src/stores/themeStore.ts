@@ -17,19 +17,15 @@ let systemThemeHandler: ((e: MediaQueryListEvent) => void) | null = null;
 export const useThemeStore = create<ThemeStoreState>((set, get) => {
   const initialTheme = getInitialTheme(THEME_STORAGE_KEY);
 
-  if (typeof window !== "undefined") {
-    applyTheme(initialTheme, document.documentElement);
-
-    if (initialTheme === "system") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      systemThemeHandler = () => {
-        const currentTheme = get().theme;
-        if (currentTheme === "system") {
-          applyTheme("system", document.documentElement);
-        }
-      };
-      mediaQuery.addEventListener("change", systemThemeHandler);
-    }
+  if (typeof window !== "undefined" && initialTheme === "system") {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    systemThemeHandler = () => {
+      const currentTheme = get().theme;
+      if (currentTheme === "system") {
+        applyTheme("system", document.documentElement);
+      }
+    };
+    mediaQuery.addEventListener("change", systemThemeHandler);
   }
 
   return {
