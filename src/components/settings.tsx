@@ -65,12 +65,8 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const [cleanupPrompt, setCleanupPrompt] = useState<string | undefined>(
     undefined
   );
-  const [cursorColor, setCursorColor] = useState<string | undefined>(
-    settings.cursorColor
-  );
-  const [textColor, setTextColor] = useState<string | undefined>(
-    settings.textColor
-  );
+  const [cursorColor, setCursorColor] = useState<string | undefined>();
+  const [textColor, setTextColor] = useState<string | undefined>();
   const [lockLoading, setLockLoading] = useState(false);
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
     null
@@ -286,10 +282,8 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                 {props.open && (
                   <PreviewText
                     text={EXAMPLE_TEXT}
-                    textColor={textColor || settings.textColor || "#000000"}
-                    cursorColor={
-                      cursorColor || settings.cursorColor || "#000000"
-                    }
+                    textColor={textColor || settings.textColor}
+                    cursorColor={cursorColor || settings.cursorColor}
                   />
                 )}
               </div>
@@ -304,7 +298,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                 </FieldContent>
                 <ColorPicker
                   state={textColor}
-                  fallbackColor={settings.textColor || "#000000"}
+                  fallbackColor={settings.textColor}
                   onColorChange={setTextColor}
                   onSubmit={handleChangeTextColor}
                 />
@@ -319,7 +313,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                 </FieldContent>
                 <ColorPicker
                   state={cursorColor}
-                  fallbackColor={settings.cursorColor || "#000000"}
+                  fallbackColor={settings.cursorColor}
                   onColorChange={setCursorColor}
                   onSubmit={handleChangeCursorColor}
                 />
