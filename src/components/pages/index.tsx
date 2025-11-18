@@ -65,6 +65,10 @@ function Index() {
           raw_blob: null,
           encrypted_blob: JSON.stringify(result),
           is_encrypted: true,
+          user_id: null,
+          server_id: null,
+          synced_at: null,
+          sync_status: null,
           created_at: new Date(),
           updated_at: new Date(),
         };
@@ -73,6 +77,10 @@ function Index() {
           raw_blob: JSON.stringify(blob),
           encrypted_blob: null,
           is_encrypted: false,
+          user_id: null,
+          server_id: null,
+          synced_at: null,
+          sync_status: null,
           created_at: new Date(),
           updated_at: new Date(),
         };
