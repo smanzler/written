@@ -14,8 +14,8 @@ interface Settings {
   lockEnabled?: boolean;
   cursorColor?: string;
   textColor?: string;
-  aiTaggingEnabled?: boolean;
-  aiCleanupEnabled?: boolean;
+  cleanupEnabled?: boolean;
+  cleanupPrompt?: string;
   selectedModel?: string;
 }
 

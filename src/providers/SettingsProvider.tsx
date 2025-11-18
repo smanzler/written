@@ -6,8 +6,8 @@ type SettingsState = {
   lockEnabled: boolean;
   cursorColor: string;
   textColor: string;
-  aiTaggingEnabled: boolean;
-  aiCleanupEnabled: boolean;
+  cleanupEnabled: boolean;
+  cleanupPrompt: string;
   selectedModel: string | undefined;
 };
 
@@ -56,8 +56,8 @@ const getDefaultSettings = (): SettingsState => {
     lockEnabled: false,
     cursorColor: "#3b82f6",
     textColor: cssColorToHex(primaryColor),
-    aiTaggingEnabled: false,
-    aiCleanupEnabled: false,
+    cleanupEnabled: false,
+    cleanupPrompt: "Make me sound like a pirate.",
     selectedModel: undefined,
   };
 };

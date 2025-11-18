@@ -47,6 +47,7 @@ import { useLLMStore } from "@/stores/llmStore";
 import { Progress } from "./ui/progress";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
+import { Textarea } from "./ui/textarea";
 
 const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const isMobile = useIsMobile();
@@ -57,6 +58,9 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const { enableEncryption, disableEncryption, lock, isUnlocked } =
     useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
+  const [cleanupPrompt, setCleanupPrompt] = useState<string | undefined>(
+    undefined
+  );
   const [lockLoading, setLockLoading] = useState(false);
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
     null
@@ -175,30 +179,20 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     await saveSettings({ textColor: color });
   };
 
-  const handleChangeAiTaggingEnabled = async (checked: boolean) => {
-    if (!settings?.selectedModel) {
-      toast.error("Please select a model before enabling AI tagging.");
-      return;
-    }
-
-    await saveSettings({ aiTaggingEnabled: checked });
-  };
-
   const handleChangeAiCleanupEnabled = async (checked: boolean) => {
     if (!settings?.selectedModel) {
       toast.error("Please select a model before enabling AI cleanup.");
       return;
     }
 
-    await saveSettings({ aiCleanupEnabled: checked });
+    await saveSettings({ cleanupEnabled: checked });
   };
 
   const handleChangeSelectedModel = async (value: string) => {
     if (value === "none") {
       await saveSettings({
         selectedModel: undefined,
-        aiCleanupEnabled: false,
-        aiTaggingEnabled: false,
+        cleanupEnabled: false,
       });
       return;
     }
@@ -211,6 +205,12 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
       console.error(error);
       toast.error("Failed to load the selected model.");
     }
+  };
+
+  const handleSaveCleanupPrompt = async () => {
+    if (!cleanupPrompt) return;
+    await saveSettings({ cleanupPrompt: cleanupPrompt });
+    setCleanupPrompt(undefined);
   };
 
   if (!settings) return null;
@@ -307,21 +307,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
             <FieldDescription>
               Customize the AI settings for your journal.
             </FieldDescription>
-            <FieldGroup>
-              <Field orientation="horizontal">
-                <FieldContent>
-                  <FieldLabel>Tagging Text Entries</FieldLabel>
-                  <FieldDescription>
-                    Enable tagging of text entries with AI.
-                  </FieldDescription>
-                </FieldContent>
-                <Switch
-                  checked={settings.aiTaggingEnabled}
-                  onCheckedChange={handleChangeAiTaggingEnabled}
-                />
-              </Field>
-            </FieldGroup>
-            <FieldGroup>
+            <FieldGroup className="gap-2">
               <Field orientation="horizontal">
                 <FieldContent>
                   <FieldLabel>Cleanup Text Entries</FieldLabel>
@@ -330,10 +316,31 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                   </FieldDescription>
                 </FieldContent>
                 <Switch
-                  checked={settings.aiCleanupEnabled}
+                  checked={settings.cleanupEnabled}
                   onCheckedChange={handleChangeAiCleanupEnabled}
                 />
               </Field>
+              <Textarea
+                value={
+                  cleanupPrompt === undefined
+                    ? settings.cleanupPrompt || ""
+                    : cleanupPrompt
+                }
+                onChange={(e) => setCleanupPrompt(e.target.value)}
+                disabled={!settings.cleanupEnabled}
+                className="resize-none wrap-anywhere peer pr-9"
+                onBlur={handleSaveCleanupPrompt}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                    handleSaveCleanupPrompt();
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                The prompt to use for AI cleanup.
+              </p>
             </FieldGroup>
             <FieldGroup>
               <Field>

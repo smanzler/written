@@ -8,7 +8,6 @@ import type { Journal } from "@/lib/db";
 type JournalBlob = {
   content?: string;
   cleaned_content?: string | null;
-  tagged_sections?: string | null;
   error?: string;
 };
 

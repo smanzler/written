@@ -18,21 +18,6 @@ export type LocalLLMModel = {
   vram: string;
 };
 
-const tags = [
-  "Reflection",
-  "Gratitude",
-  "Goals",
-  "Mood",
-  "Ideas",
-  "Relationships",
-  "Work",
-  "Health",
-  "Personal Growth",
-  "Challenges",
-  "Accomplishments",
-  "Lessons Learned",
-];
-
 export const LLM_MODELS: LocalLLMModel[] = [
   {
     id: "llama-3.2-1b-q4f16",
@@ -74,8 +59,10 @@ type LLMStoreState = {
   changeModel: (id: string) => Promise<void>;
   resetStatus: () => void;
   getEngine: () => MLCEngine;
-  cleanUpText: (text: string) => Promise<string>;
-  tagText: (text: string) => Promise<string>;
+  cleanUpText: (
+    text: string,
+    prompt: string
+  ) => Promise<{ title: string; body: string }>;
 };
 
 export const useLLMStore = create<LLMStoreState>((set, get) => {
@@ -191,7 +178,10 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
     getEngine() {
       return engine;
     },
-    async cleanUpText(text: string): Promise<string> {
+    async cleanUpText(
+      text: string,
+      prompt: string
+    ): Promise<{ title: string; body: string }> {
       const { currentModelId, status } = get();
       if (!currentModelId || status !== "ready") {
         throw new Error("Model not ready");
@@ -208,72 +198,32 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
           messages: [
             {
               role: "system",
-              content:
-                "You are an expert editor and writing assistant. Thoroughly rewrite the provided text to correct all grammar, spelling, and punctuation errors, improve clarity, conciseness, and logical flow, and rephrase awkward sentences to sound natural, professional, and easy to read. Ensure the meaning and tone are preserved but do not hesitate to reword or restructure sentences as needed to achieve clean, polished writing. Return ONLY the fully cleaned and improved text—DO NOT include explanations, comments, or any other output only the text.",
+              content: `You are an expert editor and writing assistant. ${prompt}. Always respond with a JSON object containing { title, body }`,
             },
             {
               role: "user",
-              content: `Please clean up and improve the following text:\n\n${text}`,
+              content: text,
             },
           ],
+          response_format: { type: "json_object" },
           temperature: 0.3,
           max_tokens: 2000,
         });
 
         console.log("response: ", response);
 
-        const cleanedText =
-          response.choices[0]?.message?.content?.trim() || text;
-        return cleanedText;
-      } catch (error) {
-        throw error;
-      }
-    },
-    async tagText(text: string): Promise<string> {
-      const { currentModelId, status } = get();
-      if (!currentModelId || status !== "ready") {
-        throw new Error("Model not ready");
-      }
+        const json = JSON.parse(
+          response.choices[0]?.message?.content?.trim() || "{}"
+        );
 
-      const model = LLM_MODELS.find((m) => m.id === currentModelId);
-      if (!model) {
-        throw new Error("Model not found");
-      }
+        if (typeof json !== "object" || !json.title || !json.body) {
+          throw new Error("Invalid response format");
+        }
 
-      const engine = get().getEngine();
-
-      try {
-        const response = await engine.chat.completions.create({
-          messages: [
-            {
-              role: "system",
-              content: `You are a helpful assistant that analyzes and categorizes journal text. Split the provided text into sections, without changing the content of the sections. For each section, suggest one or more relevant tags from the following list: ${tags
-                .map((t) => `"${t}"`)
-                .join(
-                  ", "
-                )}. Return your response as structured JSON in the exact following format:
-                  [
-                    {
-                      "section": "<section text>",
-                      "tags": ["Tag1", "Tag2", ...]
-                    },
-                    ...
-                  ]
-  
-                  Do not explain your choices or add any commentary. Only return the JSON array as specified above.`,
-            },
-            {
-              role: "user",
-              content: `Analyze this text and suggest relevant tags:\n\n${text}`,
-            },
-          ],
-          temperature: 0.5,
-          max_tokens: 2000,
-        });
-
-        const taggedSections =
-          response.choices[0]?.message?.content?.trim() || "";
-        return taggedSections;
+        return {
+          title: json.title,
+          body: json.body,
+        };
       } catch (error) {
         throw error;
       }

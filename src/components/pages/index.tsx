@@ -26,7 +26,7 @@ function Index() {
   const { settings } = useSettings();
   const { encryptText, isUnlocked } = useJournal();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
-  const { cleanUpText, tagText } = useLLMStore();
+  const { cleanUpText } = useLLMStore();
 
   const typing = userInput.length > prevInputRef.current.length;
 
@@ -42,7 +42,6 @@ function Index() {
 
     try {
       let cleanedContent: string | null = null;
-      let taggedSections: string | null = null;
       let journal: Omit<Journal, "id"> | null = null;
 
       if (!isUnlocked && settings?.lockEnabled && !key) {
@@ -55,20 +54,14 @@ function Index() {
 
       toast.loading("Saving journal entry.");
 
-      if (settings?.aiCleanupEnabled) {
-        cleanedContent = await cleanUpText(content);
-      }
-
-      if (settings?.aiTaggingEnabled) {
-        const result = await tagText(content);
-
-        taggedSections = JSON.stringify(result);
+      if (settings?.cleanupEnabled && settings.cleanupPrompt) {
+        const { body } = await cleanUpText(content, settings.cleanupPrompt);
+        cleanedContent = body;
       }
 
       let blob = {
         content: content,
         cleaned_content: cleanedContent,
-        tagged_sections: taggedSections,
       };
 
       if (settings?.lockEnabled) {
@@ -105,7 +98,11 @@ function Index() {
     } catch (error) {
       console.error("Failed to add journal entry:", error);
       toast.dismiss();
-      toast.error(error as string);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to add journal entry");
+      }
       setUserInput(content);
     }
   };

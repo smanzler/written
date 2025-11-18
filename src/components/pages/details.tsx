@@ -17,7 +17,6 @@ import {
   FileText,
   Lock,
   Pencil,
-  Tag,
   Trash,
   X,
 } from "lucide-react";
@@ -48,9 +47,6 @@ import {
   DialogHeader,
   DialogDescription,
 } from "../ui/dialog";
-import React from "react";
-import { Badge } from "../ui/badge";
-import { Separator } from "../ui/separator";
 
 const Details = () => {
   const { date } = useParams();
@@ -61,9 +57,8 @@ const Details = () => {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [cleanedContent, setCleanedContent] = useState<string | null>(null);
-  const [taggedSections, setTaggedSections] = useState<
-    { section: string; tags: string[] }[] | null
-  >(null);
+  const [openCleanedContentDialog, setOpenCleanedContentDialog] =
+    useState(false);
 
   const [year, month, day] = date?.split("-").map(Number) || [];
   const dateObject =
@@ -94,7 +89,6 @@ const Details = () => {
     let blob = {
       content: content,
       cleaned_content: journal.cleaned_content,
-      tagged_sections: journal.tagged_sections,
     };
 
     if (journal.is_encrypted) {
@@ -122,19 +116,7 @@ const Details = () => {
     const journal = journals.find((j) => j.id === id);
     if (!journal) return;
     setCleanedContent(journal.cleaned_content ?? "");
-  };
-
-  const handleViewTaggedSections = (id: number) => {
-    if (!journals) return;
-    const journal = journals.find((j) => j.id === id);
-    if (!journal) return;
-    let doubleParsed: { section: string; tags: string[] }[] = [];
-    try {
-      doubleParsed = JSON.parse(JSON.parse(journal.tagged_sections ?? "[]"));
-    } catch (e) {
-      console.error("Error parsing tagged sections:", e);
-    }
-    setTaggedSections(doubleParsed);
+    setOpenCleanedContentDialog(true);
   };
 
   if (!journals || decrypting) return null;
@@ -252,7 +234,7 @@ const Details = () => {
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {(journal.cleaned_content || journal.tagged_sections) && (
+              {journal.cleaned_content && (
                 <>
                   <DropdownMenuGroup>
                     <DropdownMenuSub>
@@ -267,14 +249,6 @@ const Details = () => {
                           >
                             <FileText />
                             Cleaned Content
-                          </DropdownMenuItem>
-                        )}
-                        {!!journal.tagged_sections && (
-                          <DropdownMenuItem
-                            onClick={() => handleViewTaggedSections(journal.id)}
-                          >
-                            <Tag />
-                            Tagged Sections
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuSubContent>
@@ -313,8 +287,8 @@ const Details = () => {
       </div>
 
       <Dialog
-        open={!!cleanedContent}
-        onOpenChange={() => setCleanedContent(null)}
+        open={openCleanedContentDialog}
+        onOpenChange={setOpenCleanedContentDialog}
       >
         <DialogContent>
           <DialogHeader className="mb-4">
@@ -325,43 +299,6 @@ const Details = () => {
           </DialogHeader>
           <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
             <p className="text-muted-foreground text-sm">{cleanedContent}</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={!!taggedSections}
-        onOpenChange={() => setTaggedSections(null)}
-      >
-        <DialogContent>
-          <DialogHeader className="mb-4">
-            <DialogTitle>Tagged Sections</DialogTitle>
-            <DialogDescription>
-              The following sections have been tagged with the following tags:
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
-            {!taggedSections || taggedSections.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No tagged sections found
-              </p>
-            ) : (
-              taggedSections.map((section, index) => (
-                <React.Fragment key={index}>
-                  <div className="flex flex-row gap-2 justify-between">
-                    <p className="text-muted-foreground text-sm">
-                      {section.section}
-                    </p>
-                    <div className="flex flex-wrap gap-2 justify-end">
-                      {section.tags.map((tag, tagIndex) => (
-                        <Badge key={`${tagIndex}-${tag}`}>{tag}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                  {index !== taggedSections.length - 1 && <Separator />}
-                </React.Fragment>
-              ))
-            )}
           </div>
         </DialogContent>
       </Dialog>
