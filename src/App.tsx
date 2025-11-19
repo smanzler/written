@@ -10,6 +10,8 @@ import Header from "./components/header";
 import { useSettingsStore } from "./stores/settingsStore";
 import { useAuthStore } from "./stores/authStore";
 import { useEffect } from "react";
+import Login from "./components/pages/login";
+import Signup from "./components/pages/signup";
 
 function App() {
   const isMobile = useIsMobile();
@@ -30,6 +32,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/:date" element={<Details />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
           </Routes>
         </SidebarInset>
         <Toaster position={isMobile ? "top-center" : "bottom-right"} />
