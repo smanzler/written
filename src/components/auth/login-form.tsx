@@ -9,18 +9,21 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link, Navigate } from "react-router";
 import Quote from "./quote";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
 import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
+import { AlertCircle } from "lucide-react";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const { user } = useAuthStore();
+  const { user, signIn, loading } = useAuthStore();
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: {
@@ -28,13 +31,11 @@ export function LoginForm({
       password: "",
     },
     onSubmit: async ({ value }) => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: value.email,
-        password: value.password,
-      });
+      setError(null);
+      const { error } = await signIn(value.email, value.password);
 
       if (error) {
-        toast.error(error.message);
+        setError(error.message);
         return;
       }
 
@@ -70,6 +71,12 @@ export function LoginForm({
                   account
                 </p>
               </div>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               <form.Field
                 name="email"
                 validators={{
@@ -92,7 +99,10 @@ export function LoginForm({
                       placeholder="m@example.com"
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
+                      onChange={(e) => {
+                        field.handleChange(e.target.value);
+                        setError(null);
+                      }}
                     />
                     {field.state.meta.errors && (
                       <FieldDescription className="text-destructive">
@@ -128,7 +138,10 @@ export function LoginForm({
                       type="password"
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
+                      onChange={(e) => {
+                        field.handleChange(e.target.value);
+                        setError(null);
+                      }}
                     />
                     {field.state.meta.errors && (
                       <FieldDescription className="text-destructive">
@@ -139,8 +152,8 @@ export function LoginForm({
                 )}
               </form.Field>
               <Field>
-                <Button type="submit" disabled={form.state.isSubmitting}>
-                  {form.state.isSubmitting ? "Logging in..." : "Login"}
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Logging in..." : "Login"}
                 </Button>
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">

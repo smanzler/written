@@ -23,7 +23,10 @@ type AuthStoreState = {
   profile: Profile | null;
   profileLoading: boolean;
   initializing: boolean;
+  loading: boolean;
   initialize: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   setProfile: (profile: Profile | null) => void;
   fetchProfile: (userId?: string) => Promise<void>;
@@ -76,14 +79,18 @@ export const useAuthStore = create<AuthStoreState>((set) => {
   const handleAuthChange = async (session: Session | null) => {
     if (isInitializing) return;
 
-    set({ session, user: session?.user || null });
+    set({ loading: true, session, user: session?.user || null });
 
-    if (session?.user?.id) {
-      await fetchProfile(session.user.id);
-      startSync();
-    } else {
-      set({ profile: null, profileLoading: false });
-      stopSync();
+    try {
+      if (session?.user?.id) {
+        await fetchProfile(session.user.id);
+        startSync();
+      } else {
+        set({ profile: null, profileLoading: false });
+        stopSync();
+      }
+    } finally {
+      set({ loading: false });
     }
   };
 
@@ -94,9 +101,10 @@ export const useAuthStore = create<AuthStoreState>((set) => {
     profile: null,
     profileLoading: true,
     initializing: true,
-
+    loading: false,
     async initialize() {
       try {
+        set({ loading: true });
         supabase.auth.onAuthStateChange((_, session) => {
           handleAuthChange(session);
         });
@@ -131,15 +139,59 @@ export const useAuthStore = create<AuthStoreState>((set) => {
           profile: null,
         });
       } finally {
-        set({ initializing: false });
+        set({ initializing: false, loading: false });
         isInitializing = false;
       }
     },
 
+    async signIn(email: string, password: string) {
+      set({ loading: true });
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        return { error: error ? new Error(error.message) : null };
+      } catch (error) {
+        return {
+          error: error instanceof Error ? error : new Error("Sign in failed"),
+        };
+      } finally {
+        set({ loading: false });
+      }
+    },
+
+    async signUp(email: string, password: string) {
+      set({ loading: true });
+      try {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        return { error: error ? new Error(error.message) : null };
+      } catch (error) {
+        return {
+          error: error instanceof Error ? error : new Error("Sign up failed"),
+        };
+      } finally {
+        set({ loading: false });
+      }
+    },
+
     async signOut() {
-      await supabase.auth.signOut();
-      set({ session: null, user: null, isAuthenticated: false, profile: null });
-      stopSync();
+      set({ loading: true });
+      try {
+        await supabase.auth.signOut();
+        set({
+          session: null,
+          user: null,
+          isAuthenticated: false,
+          profile: null,
+        });
+        stopSync();
+      } finally {
+        set({ loading: false });
+      }
     },
 
     setProfile(profile) {

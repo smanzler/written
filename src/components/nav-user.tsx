@@ -15,6 +15,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/stores/authStore";
+import { Spinner } from "@/components/ui/spinner";
 import {
   EllipsisVertical,
   LogIn,
@@ -28,7 +29,8 @@ import { Link } from "react-router";
 
 export function NavUser() {
   const { isMobile, setOpen, setOpenMobile } = useSidebar();
-  const { user, profile, signOut } = useAuthStore();
+  const { user, profile, signOut, loading, initializing } = useAuthStore();
+  const isLoading = loading || initializing;
 
   return (
     <SidebarMenu>
@@ -41,15 +43,22 @@ export function NavUser() {
             >
               {user ? (
                 <>
-                  <Avatar className="h-8 w-8 rounded-lg grayscale">
-                    <AvatarImage
-                      src={profile?.avatar_url ?? undefined}
-                      alt={profile?.username ?? ""}
-                    />
-                    <AvatarFallback className="rounded-lg">
-                      {profile?.username?.charAt(0) ?? user.email?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-8 w-8 rounded-lg grayscale">
+                      <AvatarImage
+                        src={profile?.avatar_url ?? undefined}
+                        alt={profile?.username ?? ""}
+                      />
+                      <AvatarFallback className="rounded-lg">
+                        {profile?.username?.charAt(0) ?? user.email?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/80">
+                        <Spinner className="size-4" />
+                      </div>
+                    )}
+                  </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">
                       {profile?.username ?? ""}
@@ -62,8 +71,12 @@ export function NavUser() {
                 </>
               ) : (
                 <>
-                  <div className="flex items-center justify-center size-8 rounded-lg bg-muted shrink-0">
-                    <User className="size-4" />
+                  <div className="relative flex items-center justify-center size-8 rounded-lg bg-muted shrink-0">
+                    {isLoading ? (
+                      <Spinner className="size-4" />
+                    ) : (
+                      <User className="size-4" />
+                    )}
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate">Guest</span>

@@ -9,18 +9,21 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link, Navigate } from "react-router";
 import Quote from "./quote";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
 import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
+import { AlertCircle } from "lucide-react";
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const { user } = useAuthStore();
+  const { user, signUp, loading } = useAuthStore();
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: {
@@ -29,18 +32,17 @@ export function SignupForm({
       confirmPassword: "",
     },
     onSubmit: async ({ value }) => {
+      setError(null);
+
       if (value.password !== value.confirmPassword) {
-        toast.error("Passwords do not match");
+        setError("Passwords do not match");
         return;
       }
 
-      const { error } = await supabase.auth.signUp({
-        email: value.email,
-        password: value.password,
-      });
+      const { error } = await signUp(value.email, value.password);
 
       if (error) {
-        toast.error(error.message);
+        setError(error.message);
         return;
       }
 
@@ -71,6 +73,12 @@ export function SignupForm({
                   Enter your email below to create your account
                 </p>
               </div>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               <form.Field
                 name="email"
                 validators={{
@@ -93,7 +101,10 @@ export function SignupForm({
                       placeholder="your@email.com"
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
+                      onChange={(e) => {
+                        field.handleChange(e.target.value);
+                        setError(null);
+                      }}
                     />
                     {field.state.meta.errors && (
                       <FieldDescription className="text-destructive">
@@ -133,7 +144,10 @@ export function SignupForm({
                           placeholder="••••••••"
                           value={field.state.value}
                           onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
+                          onChange={(e) => {
+                            field.handleChange(e.target.value);
+                            setError(null);
+                          }}
                         />
                         {field.state.meta.errors && (
                           <FieldDescription className="text-destructive text-xs">
@@ -167,7 +181,10 @@ export function SignupForm({
                           placeholder="••••••••"
                           value={field.state.value}
                           onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
+                          onChange={(e) => {
+                            field.handleChange(e.target.value);
+                            setError(null);
+                          }}
                         />
                         {field.state.meta.errors && (
                           <FieldDescription className="text-destructive text-xs">
@@ -183,8 +200,8 @@ export function SignupForm({
                 </FieldDescription>
               </Field>
               <Field>
-                <Button type="submit" disabled={form.state.isSubmitting}>
-                  {form.state.isSubmitting ? "Creating..." : "Create Account"}
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Creating..." : "Create Account"}
                 </Button>
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
