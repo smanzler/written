@@ -11,12 +11,12 @@ import { Button } from "../ui/button";
 import {
   ArrowLeft,
   BookOpen,
-  Brain,
   Check,
   Copy,
   FileText,
   Lock,
   Pencil,
+  Sparkles,
   Trash,
   X,
 } from "lucide-react";
@@ -24,16 +24,13 @@ import { useDecryptedJournalsByDate } from "@/dexie/journals/queries";
 import { useJournalStore } from "@/stores/journalStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import LockedDialog from "../ui/locked-dialog";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useDeleteJournal, useUpdateJournal } from "@/dexie/journals/mutations";
@@ -56,8 +53,7 @@ const Details = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
-  const [cleanedContent, setCleanedContent] = useState<string | null>(null);
-  const [openCleanedContentDialog, setOpenCleanedContentDialog] =
+  const [openOriginalContentDialog, setOpenOriginalContentDialog] =
     useState(false);
 
   const [year, month, day] = date?.split("-").map(Number) || [];
@@ -109,14 +105,6 @@ const Details = () => {
     await updateJournal(id, journalData);
     setEditingId(null);
     setSaving(false);
-  };
-
-  const handleViewCleanedContent = (id: number) => {
-    if (!journals) return;
-    const journal = journals.find((j) => j.id === id);
-    if (!journal) return;
-    setCleanedContent(journal.cleaned_content ?? "");
-    setOpenCleanedContentDialog(true);
   };
 
   if (!journals || decrypting) return null;
@@ -181,127 +169,127 @@ const Details = () => {
       </h1>
       <div className="flex flex-col">
         {journals?.map((journal) => (
-          <DropdownMenu key={journal.id}>
-            <DropdownMenuTrigger
-              asChild
-              disabled={editingId === journal.id || saving}
-            >
-              <div
-                className={cn(
-                  "space-y-2 cursor-pointer rounded-md p-2",
-                  editingId !== journal.id &&
-                    "hover:bg-accent data-[state=open]:bg-accent"
-                )}
+          <React.Fragment key={journal.id}>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                asChild
+                disabled={editingId === journal.id || saving}
               >
-                <Label className="text-muted-foreground">
-                  {journal.created_at.toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
-                </Label>
-                {editingId === journal.id ? (
-                  <div className="flex flex-col items-end gap-2">
-                    <Textarea
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      className="resize-none wrap-anywhere"
-                      disabled={saving}
-                    />
-                    <div className="flex items-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditingId(null)}
-                      >
-                        <X />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleSave(journal.id, content)}
-                      >
-                        {saving ? <Spinner /> : <Check />}
-                      </Button>
-                    </div>
+                <div
+                  className={cn(
+                    "space-y-2 cursor-pointer rounded-md p-2",
+                    editingId !== journal.id &&
+                      "hover:bg-accent data-[state=open]:bg-accent"
+                  )}
+                >
+                  <div className="flex flex-row items-center gap-2">
+                    <Label className="text-muted-foreground">
+                      {journal.created_at.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </Label>
+                    {!!journal.cleaned_content && (
+                      <Sparkles className="size-4 text-yellow-500" />
+                    )}
                   </div>
-                ) : (
+                  {editingId === journal.id ? (
+                    <div className="flex flex-col items-end gap-2">
+                      <Textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        className="resize-none wrap-anywhere"
+                        disabled={saving}
+                      />
+                      <div className="flex items-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingId(null)}
+                        >
+                          <X />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleSave(journal.id, content)}
+                        >
+                          {saving ? <Spinner /> : <Check />}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm wrap-anywhere">
+                      {journal.cleaned_content ?? journal.content}
+                    </p>
+                  )}
+                  {journal.error && (
+                    <p className="text-sm text-red-500">{journal.error}</p>
+                  )}
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {journal.cleaned_content && (
+                  <DropdownMenuItem
+                    onClick={() => setOpenOriginalContentDialog(true)}
+                  >
+                    <FileText />
+                    View Original
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      navigator.clipboard.writeText(journal.content || "")
+                    }
+                  >
+                    <Copy />
+                    Copy
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEdit(journal.id)}>
+                    <Pencil />
+                    Edit
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => deleteJournal(journal.id)}
+                  >
+                    <Trash />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Dialog
+              open={openOriginalContentDialog}
+              onOpenChange={setOpenOriginalContentDialog}
+            >
+              <DialogContent>
+                <DialogHeader className="mb-4">
+                  <DialogTitle>Original Content</DialogTitle>
+                  <DialogDescription>
+                    The following content was originally written:
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col space-y-2 max-h-[60vh] overflow-y-auto">
+                  <Label className="text-muted-foreground">
+                    {journal.created_at.toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </Label>
                   <p className="text-sm wrap-anywhere">{journal.content}</p>
-                )}
-                {journal.error && (
-                  <p className="text-sm text-red-500">{journal.error}</p>
-                )}
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {journal.cleaned_content && (
-                <>
-                  <DropdownMenuGroup>
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                        <Brain />
-                        View AI Analysis
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        {!!journal.cleaned_content && (
-                          <DropdownMenuItem
-                            onClick={() => handleViewCleanedContent(journal.id)}
-                          >
-                            <FileText />
-                            Cleaned Content
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  onClick={() =>
-                    navigator.clipboard.writeText(journal.content || "")
-                  }
-                >
-                  <Copy />
-                  Copy
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleEdit(journal.id)}>
-                  <Pencil />
-                  Edit
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() => deleteJournal(journal.id)}
-                >
-                  <Trash />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </React.Fragment>
         ))}
       </div>
-
-      <Dialog
-        open={openCleanedContentDialog}
-        onOpenChange={setOpenCleanedContentDialog}
-      >
-        <DialogContent>
-          <DialogHeader className="mb-4">
-            <DialogTitle>Cleaned Content</DialogTitle>
-            <DialogDescription>
-              The following content has been cleaned up:
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
-            <p className="text-muted-foreground text-sm">{cleanedContent}</p>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
