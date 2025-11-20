@@ -12,6 +12,7 @@ import { useAuthStore } from "./stores/authStore";
 import { useEffect } from "react";
 import Login from "./components/pages/login";
 import Signup from "./components/pages/signup";
+import { MigrateJournalsDialog } from "./components/auth/migrate-journals-dialog";
 
 function App() {
   const isMobile = useIsMobile();
@@ -37,6 +38,7 @@ function App() {
           </Routes>
         </SidebarInset>
         <Toaster position={isMobile ? "top-center" : "bottom-right"} />
+        <MigrateJournalsDialog />
       </BrowserRouter>
     </SidebarProvider>
   );

@@ -10,6 +10,7 @@ import { useJournalStore } from "@/stores/journalStore";
 import LockedDialog from "../ui/locked-dialog";
 import { useLLMStore } from "@/stores/llmStore";
 import TextCarousel from "../ui/text-carousel";
+import { useAuthStore } from "@/stores/authStore";
 
 function Index() {
   const [userInput, setUserInput] = useState<string>("");
@@ -21,6 +22,7 @@ function Index() {
   const { encryptText, isUnlocked } = useJournalStore();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const { cleanUpText } = useLLMStore();
+  const { user } = useAuthStore();
 
   const typing = userInput.length > prevInputRef.current.length;
 
@@ -36,7 +38,17 @@ function Index() {
 
     try {
       let cleanedContent: string | null = null;
-      let journal: Omit<Journal, "id"> | null = null;
+      let journal: Omit<Journal, "id"> = {
+        user_id: user?.id ?? null,
+        server_id: null,
+        raw_blob: null,
+        encrypted_blob: null,
+        is_encrypted: false,
+        synced_at: null,
+        sync_status: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
 
       if (!isUnlocked && settings.lockEnabled && !key) {
         inputRef.current?.blur();
@@ -62,35 +74,15 @@ function Index() {
         const result = await encryptText(JSON.stringify(blob), key);
 
         journal = {
-          raw_blob: null,
+          ...journal,
           encrypted_blob: JSON.stringify(result),
           is_encrypted: true,
-          user_id: null,
-          server_id: null,
-          synced_at: null,
-          sync_status: null,
-          created_at: new Date(),
-          updated_at: new Date(),
         };
       } else {
         journal = {
+          ...journal,
           raw_blob: JSON.stringify(blob),
-          encrypted_blob: null,
-          is_encrypted: false,
-          user_id: null,
-          server_id: null,
-          synced_at: null,
-          sync_status: null,
-          created_at: new Date(),
-          updated_at: new Date(),
         };
-      }
-
-      if (!journal) {
-        toast.dismiss();
-        toast.error("Failed to create journal entry");
-        setUserInput(content);
-        return;
       }
 
       await db.journals.add(journal);
