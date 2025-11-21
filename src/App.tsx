@@ -9,6 +9,7 @@ import Details from "./components/pages/details";
 import Header from "./components/header";
 import { useSettingsStore } from "./stores/settingsStore";
 import { useAuthStore } from "./stores/authStore";
+import { useLLMStore } from "./stores/llmStore";
 import { useEffect } from "react";
 import Login from "./components/pages/login";
 import Signup from "./components/pages/signup";
@@ -19,11 +20,16 @@ function App() {
   const isMobile = useIsMobile();
   const initializeSettings = useSettingsStore((state) => state.initialize);
   const initializeAuth = useAuthStore((state) => state.initialize);
+  const initializeLLM = useLLMStore((state) => state.initialize);
 
   useEffect(() => {
-    initializeSettings();
-    initializeAuth();
-  }, [initializeSettings, initializeAuth]);
+    const init = async () => {
+      await initializeSettings();
+      initializeAuth();
+      initializeLLM();
+    };
+    init();
+  }, [initializeSettings, initializeAuth, initializeLLM]);
 
   return (
     <SidebarProvider defaultOpen={false}>

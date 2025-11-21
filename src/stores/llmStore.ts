@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { MLCEngine, hasModelInCache, prebuiltAppConfig } from "@mlc-ai/web-llm";
 import { toast } from "sonner";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 type LLMStatus =
   | "idle"
@@ -56,9 +57,11 @@ type LLMStoreState = {
   currentModelId?: string;
   targetModelId?: string;
   isCached: boolean | null;
+  initialized: boolean;
   changeModel: (id: string) => Promise<void>;
   resetStatus: () => void;
   getEngine: () => MLCEngine;
+  initialize: () => Promise<void>;
   cleanUpText: (
     text: string,
     prompt: string
@@ -102,6 +105,25 @@ export const useLLMStore = create<LLMStoreState>((set, get) => {
     currentModelId: undefined,
     targetModelId: undefined,
     isCached: null,
+    initialized: false,
+    async initialize() {
+      if (get().initialized) return;
+
+      const settings = useSettingsStore.getState().settings;
+
+      if (settings.selectedModel) {
+        try {
+          await get().changeModel(settings.selectedModel);
+        } catch (error) {
+          console.error(
+            "Failed to load selected model on initialization:",
+            error
+          );
+        }
+      }
+
+      set({ initialized: true });
+    },
     async changeModel(id) {
       if (!id) return;
 

@@ -35,7 +35,13 @@ import {
 import { SelectItemText } from "@radix-ui/react-select";
 import { useLLMStore } from "@/stores/llmStore";
 import { Progress } from "@/components/ui/progress";
-import { Info, RotateCcw, Sparkles } from "lucide-react";
+import {
+  Info,
+  RotateCcw,
+  Sparkles,
+  ChevronRight,
+  ArrowLeft,
+} from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PreviewText from "@/components/ui/preview-text";
@@ -321,29 +327,9 @@ const AiSection = () => {
     timeElapsed: modelTimeElapsed,
     error: modelError,
     changeModel,
-    currentModelId,
-    targetModelId,
   } = useLLMStore();
   const modelDownloading = modelStatus === "downloading";
   const modelLoading = ["checking-cache", "loading"].includes(modelStatus);
-
-  useEffect(() => {
-    if (!settings.selectedModel) return;
-    if (targetModelId === settings.selectedModel) return;
-    if (currentModelId === settings.selectedModel) return;
-    if (modelLoading || modelDownloading) return;
-
-    changeModel(settings.selectedModel).catch((e) => {
-      console.error("Error changing model:", e);
-    });
-  }, [
-    settings.selectedModel,
-    changeModel,
-    currentModelId,
-    targetModelId,
-    modelLoading,
-    modelDownloading,
-  ]);
 
   const handleChangeAiCleanupEnabled = async (checked: boolean) => {
     if (!settings.selectedModel) {
@@ -529,9 +515,7 @@ const SettingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
   const validTabs = ["security", "appearance", "ai", "profile"];
-  const defaultTab = validTabs.includes(tabParam || "")
-    ? tabParam!
-    : "security";
+  const defaultTab = validTabs.includes(tabParam || "") ? tabParam! : null;
   const [activeTab, setActiveTab] = useState(defaultTab);
   const { user } = useAuthStore();
   const isMobile = useIsMobile();
@@ -552,14 +536,102 @@ const SettingsPage = () => {
   };
 
   if (isMobile) {
-    return <h1>Mobile</h1>;
+    const currentSection = activeTab || null;
+
+    if (!currentSection) {
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <div className="flex flex-col px-4">
+            <Button
+              variant="ghost"
+              className="w-full justify-between h-auto py-4"
+              onClick={() => handleTabChange("security")}
+            >
+              <span className="font-medium">Security</span>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-between h-auto py-4"
+              onClick={() => handleTabChange("appearance")}
+            >
+              <span className="font-medium">Appearance</span>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-between h-auto py-4"
+              onClick={() => handleTabChange("ai")}
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-medium">AI</span>
+                <Sparkles className="size-4" />
+              </div>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </Button>
+            {user && (
+              <Button
+                variant="ghost"
+                className="w-full justify-between h-auto py-4"
+                onClick={() => handleTabChange("profile")}
+              >
+                <span className="font-medium">Account</span>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Button>
+            )}
+          </div>
+          <div className="border-t mt-4 pt-4 px-4">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={handleResetSettings}
+            >
+              <RotateCcw className="size-4 mr-2" />
+              Reset Settings
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Show detail view for selected section
+    return (
+      <div className="flex flex-col h-full overflow-y-auto">
+        <div className="sticky top-0 bg-background border-b z-10">
+          <div className="flex items-center gap-2 py-2 px-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setActiveTab(null);
+                setSearchParams({});
+              }}
+            >
+              <ArrowLeft className="size-4" />
+            </Button>
+            <h2 className="text-lg font-semibold">
+              {currentSection === "security" && "Security"}
+              {currentSection === "appearance" && "Appearance"}
+              {currentSection === "ai" && "AI"}
+              {currentSection === "profile" && "Account"}
+            </h2>
+          </div>
+        </div>
+        <div className="p-4 pb-8">
+          {currentSection === "security" && <SecuritySection />}
+          {currentSection === "appearance" && <AppearanceSection />}
+          {currentSection === "ai" && <AiSection />}
+          {currentSection === "profile" && user && <ProfileSection />}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="flex justify-center h-full p-8">
       <Tabs
         orientation="vertical"
-        value={activeTab}
+        value={activeTab || "security"}
         onValueChange={handleTabChange}
         className="flex-row gap-4 max-w-2xl w-full"
       >
