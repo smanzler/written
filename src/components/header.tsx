@@ -15,7 +15,7 @@ const Header = () => {
   const { settings } = useSettingsStore();
 
   return (
-    <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4 sticky top-0 bg-background">
+    <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4 sticky top-0 bg-background z-2">
       {isMobile && <SidebarTrigger />}
       <div className="ml-auto flex flex-row">
         <Button variant="ghost" size="icon" asChild>
