@@ -27,9 +27,17 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 
+const profile = {
+  id: "123",
+  username: "John Doe",
+  avatar_url: "https://github.com/shadcn.png",
+  created_at: "2021-01-01",
+};
+
 export function NavUser() {
   const { isMobile, setOpen, setOpenMobile } = useSidebar();
-  const { user, profile, signOut, loading, initializing } = useAuthStore();
+  const { user, signOut, loading, initializing } = useAuthStore();
+
   const isLoading = loading || initializing;
 
   return (
@@ -114,13 +122,29 @@ export function NavUser() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <UserCircle />
-                    Account
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/settings?tab=profile"
+                      onClick={() => {
+                        setOpen(false);
+                        setOpenMobile(false);
+                      }}
+                    >
+                      <UserCircle />
+                      Account
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Settings />
-                    Settings
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/settings"
+                      onClick={() => {
+                        setOpen(false);
+                        setOpenMobile(false);
+                      }}
+                    >
+                      <Settings />
+                      Settings
+                    </Link>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

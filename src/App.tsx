@@ -13,6 +13,7 @@ import { useEffect } from "react";
 import Login from "./components/pages/login";
 import Signup from "./components/pages/signup";
 import { MigrateJournalsDialog } from "./components/auth/migrate-journals-dialog";
+import SettingsPage from "./components/pages/settings";
 
 function App() {
   const isMobile = useIsMobile();
@@ -35,6 +36,7 @@ function App() {
             <Route path="/:date" element={<Details />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </SidebarInset>
         <Toaster position={isMobile ? "top-center" : "bottom-right"} />

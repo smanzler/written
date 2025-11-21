@@ -9,59 +9,20 @@ import {
   sync,
 } from "@/lib/sync";
 
-interface Profile {
-  id: string;
-  username: string;
-  avatar_url: string | null;
-  created_at: string;
-}
-
 type AuthStoreState = {
   session: Session | null;
   user: User | null;
   isAuthenticated: boolean;
-  profile: Profile | null;
-  profileLoading: boolean;
   initializing: boolean;
   loading: boolean;
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  setProfile: (profile: Profile | null) => void;
-  fetchProfile: (userId?: string) => Promise<void>;
 };
 
 export const useAuthStore = create<AuthStoreState>((set) => {
   let isInitializing = true;
-
-  const fetchProfile = async (userId?: string) => {
-    if (!userId) {
-      set({ profile: null, profileLoading: false });
-      return;
-    }
-
-    set({ profileLoading: true });
-
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (error || !data) {
-        set({ profile: null });
-      } else {
-        set({ profile: data });
-      }
-    } catch (error) {
-      console.error("Error in profile fetch flow:", error);
-      set({ profile: null });
-    } finally {
-      set({ profileLoading: false });
-    }
-  };
 
   const startSync = () => {
     startPeriodicSync(30000);
@@ -83,10 +44,8 @@ export const useAuthStore = create<AuthStoreState>((set) => {
 
     try {
       if (session?.user?.id) {
-        await fetchProfile(session.user.id);
         startSync();
       } else {
-        set({ profile: null, profileLoading: false });
         stopSync();
       }
     } finally {
@@ -98,8 +57,6 @@ export const useAuthStore = create<AuthStoreState>((set) => {
     session: null,
     user: null,
     isAuthenticated: false,
-    profile: null,
-    profileLoading: true,
     initializing: true,
     loading: false,
     async initialize() {
@@ -124,10 +81,7 @@ export const useAuthStore = create<AuthStoreState>((set) => {
           });
 
           if (session?.user?.id) {
-            await fetchProfile(session.user.id);
             startSync();
-          } else {
-            set({ profile: null, profileLoading: false });
           }
         }
       } catch (error) {
@@ -136,7 +90,6 @@ export const useAuthStore = create<AuthStoreState>((set) => {
           session: null,
           user: null,
           isAuthenticated: false,
-          profile: null,
         });
       } finally {
         set({ initializing: false, loading: false });
@@ -186,18 +139,11 @@ export const useAuthStore = create<AuthStoreState>((set) => {
           session: null,
           user: null,
           isAuthenticated: false,
-          profile: null,
         });
         stopSync();
       } finally {
         set({ loading: false });
       }
     },
-
-    setProfile(profile) {
-      set({ profile });
-    },
-
-    fetchProfile,
   };
 });

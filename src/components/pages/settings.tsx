@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,25 +6,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useJournalStore } from "@/stores/journalStore";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "./ui/sheet";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { Switch } from "./ui/switch";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import LockedDialog from "./ui/locked-dialog";
-import { Spinner } from "./ui/spinner";
-import { ColorPicker } from "./ui/color-picker";
-import PasswordOTP from "./ui/password-otp";
+import LockedDialog from "@/components/ui/locked-dialog";
+import { Spinner } from "@/components/ui/spinner";
+import { ColorPicker } from "@/components/ui/color-picker";
+import PasswordOTP from "@/components/ui/password-otp";
 import {
   Field,
   FieldContent,
@@ -32,29 +23,53 @@ import {
   FieldGroup,
   FieldLabel,
   FieldLegend,
-  FieldSeparator,
   FieldSet,
-} from "./ui/field";
+} from "@/components/ui/field";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "@/components/ui/select";
 import { SelectItemText } from "@radix-ui/react-select";
 import { useLLMStore } from "@/stores/llmStore";
-import { Progress } from "./ui/progress";
-import { cn } from "@/lib/utils";
-import { Info, Sparkles, XIcon } from "lucide-react";
-import { Textarea } from "./ui/textarea";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import PreviewText from "./ui/preview-text";
+import { Progress } from "@/components/ui/progress";
+import { Info, RotateCcw, Sparkles } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import PreviewText from "@/components/ui/preview-text";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Separator } from "../ui/separator";
+import { Navigate, useSearchParams } from "react-router";
+import { useAuthStore } from "@/stores/authStore";
+import { Input } from "../ui/input";
 
 const EXAMPLE_TEXT = "Hello World";
 
-const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
-  const isMobile = useIsMobile();
+const tabsButtonClassname =
+  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center gap-1.5 rounded-md !border-none px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 w-full justify-start hover:bg-muted";
+
+const SettingsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const validTabs = ["security", "appearance", "ai", "profile"];
+  const defaultTab = validTabs.includes(tabParam || "")
+    ? tabParam!
+    : "security";
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  useEffect(() => {
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
+
   const { settings, saveSettings } = useSettingsStore();
   const [passwordDialogShown, setPasswordDialogShown] = useState(false);
   const [removeKeyDialogShown, setRemoveKeyDialogShown] = useState(false);
@@ -68,10 +83,7 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   const [cursorColor, setCursorColor] = useState<string | undefined>();
   const [textColor, setTextColor] = useState<string | undefined>();
   const [lockLoading, setLockLoading] = useState(false);
-  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
-    null
-  );
-  const [isScrolled, setIsScrolled] = useState(false);
+  const { user, initializing } = useAuthStore();
   const {
     models: llmModels,
     status: modelStatus,
@@ -84,25 +96,6 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
   } = useLLMStore();
   const modelDownloading = modelStatus === "downloading";
   const modelLoading = ["checking-cache", "loading"].includes(modelStatus);
-
-  useEffect(() => {
-    if (!scrollElement) return;
-
-    const handleScroll = () => {
-      setIsScrolled(scrollElement.scrollTop > 0);
-    };
-
-    scrollElement.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-
-    return () => {
-      scrollElement.removeEventListener("scroll", handleScroll);
-    };
-  }, [scrollElement]);
-
-  const setScrollableRef = useCallback((node: HTMLDivElement | null) => {
-    setScrollElement(node);
-  }, []);
 
   useEffect(() => {
     if (!settings.selectedModel) return;
@@ -219,33 +212,47 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
     setCleanupPrompt(undefined);
   };
 
-  return (
-    <Sheet {...props}>
-      <SheetContent
-        ref={setScrollableRef}
-        side={isMobile ? "bottom" : "right"}
-        className={cn(
-          isMobile ? "max-h-[80vh]" : "pb-16",
-          "overflow-y-auto overflow-x-hidden [&>button]:hidden no-scrollbar"
-        )}
-      >
-        <SheetHeader
-          className={cn(
-            "sticky top-0 transition-all duration-300 ease-in-out z-5",
-            isScrolled
-              ? "bg-card shadow-xl dark:shadow-[0_10px_10px_rgba(0,0,0,0.5)] backdrop-blur-lg supports-[backdrop-filter]:bg-neutral-400/40 dark:supports-[backdrop-filter]:bg-neutral-700/40"
-              : "bg-transparent backdrop-blur-none shadow-none"
-          )}
-        >
-          <SheetTitle>Settings</SheetTitle>
-          <SheetDescription>Configure your journal experience</SheetDescription>
-          <SheetClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-            <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
-          </SheetClose>
-        </SheetHeader>
+  const handleResetSettings = () => {
+    toast.warning("This doesn't do anything lol.");
+  };
 
-        <FieldGroup className="p-4 -mt-4">
+  return (
+    <div className="flex justify-center h-full p-8">
+      <Tabs
+        orientation="vertical"
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="flex-row gap-4 max-w-2xl w-full"
+      >
+        <TabsList className="flex-col h-fit w-full max-w-[200px] bg-background gap-1">
+          <TabsTrigger value="security" className={tabsButtonClassname}>
+            Security
+          </TabsTrigger>
+          <TabsTrigger value="appearance" className={tabsButtonClassname}>
+            Appearance
+          </TabsTrigger>
+          <TabsTrigger value="ai" className={tabsButtonClassname}>
+            AI
+          </TabsTrigger>
+          <Separator className="my-3" />
+          {user && (
+            <>
+              <TabsTrigger value="profile" className={tabsButtonClassname}>
+                Account
+              </TabsTrigger>
+              <Separator className="my-3" />
+            </>
+          )}
+          <Button
+            variant="ghost"
+            className={tabsButtonClassname}
+            onClick={handleResetSettings}
+          >
+            <RotateCcw className="size-4" />
+            Reset Settings
+          </Button>
+        </TabsList>
+        <TabsContent value="security" className="flex-1">
           <FieldSet>
             <FieldLegend>Security</FieldLegend>
             <FieldDescription>
@@ -267,9 +274,9 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
               </Field>
             </FieldGroup>
           </FieldSet>
+        </TabsContent>
 
-          <FieldSeparator />
-
+        <TabsContent value="appearance" className="flex-1">
           <FieldSet>
             <FieldLegend>Appearance</FieldLegend>
             <FieldDescription>
@@ -279,13 +286,11 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
             <div className="flex flex-col gap-2">
               <p className="text-sm text-muted-foreground">Preview</p>
               <div className="w-full flex flex-col items-center justify-center">
-                {props.open && (
-                  <PreviewText
-                    text={EXAMPLE_TEXT}
-                    textColor={textColor || settings.textColor}
-                    cursorColor={cursorColor || settings.cursorColor}
-                  />
-                )}
+                <PreviewText
+                  text={EXAMPLE_TEXT}
+                  textColor={textColor || settings.textColor}
+                  cursorColor={cursorColor || settings.cursorColor}
+                />
               </div>
             </div>
             <FieldGroup>
@@ -320,10 +325,18 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
               </Field>
             </FieldGroup>
           </FieldSet>
+        </TabsContent>
 
-          <FieldSeparator />
+        <TabsContent value="ai" className="flex-1">
+          <FieldSet>
+            <FieldLegend className="flex flex-row items-center gap-2 justify-between w-full">
+              AI
+              <Sparkles className="size-4" />
+            </FieldLegend>
+            <FieldDescription>
+              Customize the AI settings for your journal.
+            </FieldDescription>
 
-          <div className="flex flex-col gap-2">
             <Alert>
               <Info className="size-4" />
               <AlertTitle>AI Features</AlertTitle>
@@ -333,116 +346,131 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
                 used offline once downloaded.
               </AlertDescription>
             </Alert>
+
+            <FieldGroup className="gap-2">
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>Cleanup Text Entries</FieldLabel>
+                  <FieldDescription>
+                    Enable cleanup of text entries with AI.
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  checked={settings.cleanupEnabled}
+                  onCheckedChange={handleChangeAiCleanupEnabled}
+                />
+              </Field>
+              <Textarea
+                value={
+                  cleanupPrompt === undefined
+                    ? settings.cleanupPrompt || ""
+                    : cleanupPrompt
+                }
+                onChange={(e) => setCleanupPrompt(e.target.value)}
+                disabled={!settings.cleanupEnabled}
+                className="resize-none wrap-anywhere peer pr-9"
+                onBlur={handleSaveCleanupPrompt}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                    handleSaveCleanupPrompt();
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                The prompt to use for AI cleanup.
+              </p>
+            </FieldGroup>
+            <FieldGroup>
+              <Field>
+                <FieldContent>
+                  <FieldLabel>Selected Model</FieldLabel>
+                  <FieldDescription>
+                    Select the model to use for AI tagging and cleanup.
+                  </FieldDescription>
+                </FieldContent>
+                <div className="space-y-4 text-xs">
+                  <Select
+                    value={settings.selectedModel || "none"}
+                    onValueChange={handleChangeSelectedModel}
+                    disabled={modelLoading || modelDownloading}
+                  >
+                    <SelectTrigger className="min-w-[220px]">
+                      {modelLoading || modelDownloading ? (
+                        <div className="flex flex-row gap-2 items-center">
+                          <Spinner />
+                          Loading model...
+                        </div>
+                      ) : (
+                        <SelectValue>
+                          {settings.selectedModel
+                            ? llmModels.find(
+                                (model) => model.id === settings.selectedModel
+                              )?.label
+                            : "Choose a model"}
+                        </SelectValue>
+                      )}
+                    </SelectTrigger>
+                    <SelectContent align="end">
+                      {llmModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <SelectItemText>
+                            <div className="flex flex-col text-left">
+                              <span>{model.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {model.description} · {model.vram}
+                              </span>
+                            </div>
+                          </SelectItemText>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="none">None</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {modelDownloading && (
+                    <div className="space-y-2">
+                      {modelTimeElapsed && (
+                        <div className="flex flex-row justify-between gap-2 text-muted-foreground">
+                          <p>{modelProgress}%</p>
+                          <p>{modelTimeElapsed}s</p>
+                        </div>
+                      )}
+                      <Progress value={modelProgress} className="w-full" />
+                    </div>
+                  )}
+                  {modelError && (
+                    <p className="text-destructive">{modelError}</p>
+                  )}
+                </div>
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+        </TabsContent>
+        <TabsContent value="profile" className="flex-1">
+          {initializing ? (
+            <div className="flex flex-col items-center justify-center">
+              <Spinner />
+              <p className="text-muted-foreground">Loading account...</p>
+            </div>
+          ) : user ? (
             <FieldSet>
-              <FieldLegend className="flex flex-row items-center gap-2 justify-between w-full">
-                AI
-                <Sparkles className="size-4" />
-              </FieldLegend>
-              <FieldDescription>
-                Customize the AI settings for your journal.
-              </FieldDescription>
-              <FieldGroup className="gap-2">
+              <FieldLegend>Account</FieldLegend>
+              <FieldDescription>Manage your account settings.</FieldDescription>
+              <FieldGroup>
                 <Field orientation="horizontal">
                   <FieldContent>
-                    <FieldLabel>Cleanup Text Entries</FieldLabel>
-                    <FieldDescription>
-                      Enable cleanup of text entries with AI.
-                    </FieldDescription>
+                    <FieldLabel>Email</FieldLabel>
                   </FieldContent>
-                  <Switch
-                    checked={settings.cleanupEnabled}
-                    onCheckedChange={handleChangeAiCleanupEnabled}
-                  />
-                </Field>
-                <Textarea
-                  value={
-                    cleanupPrompt === undefined
-                      ? settings.cleanupPrompt || ""
-                      : cleanupPrompt
-                  }
-                  onChange={(e) => setCleanupPrompt(e.target.value)}
-                  disabled={!settings.cleanupEnabled}
-                  className="resize-none wrap-anywhere peer pr-9"
-                  onBlur={handleSaveCleanupPrompt}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      e.currentTarget.blur();
-                      handleSaveCleanupPrompt();
-                    }
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  The prompt to use for AI cleanup.
-                </p>
-              </FieldGroup>
-              <FieldGroup>
-                <Field>
-                  <FieldContent>
-                    <FieldLabel>Selected Model</FieldLabel>
-                    <FieldDescription>
-                      Select the model to use for AI tagging and cleanup.
-                    </FieldDescription>
-                  </FieldContent>
-                  <div className="space-y-4 text-xs">
-                    <Select
-                      value={settings.selectedModel || "none"}
-                      onValueChange={handleChangeSelectedModel}
-                      disabled={modelLoading || modelDownloading}
-                    >
-                      <SelectTrigger className="min-w-[220px]">
-                        {modelLoading || modelDownloading ? (
-                          <div className="flex flex-row gap-2 items-center">
-                            <Spinner />
-                            Loading model...
-                          </div>
-                        ) : (
-                          <SelectValue>
-                            {settings.selectedModel
-                              ? llmModels.find(
-                                  (model) => model.id === settings.selectedModel
-                                )?.label
-                              : "Choose a model"}
-                          </SelectValue>
-                        )}
-                      </SelectTrigger>
-                      <SelectContent align="end">
-                        {llmModels.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
-                            <SelectItemText>
-                              <div className="flex flex-col text-left">
-                                <span>{model.label}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {model.description} · {model.vram}
-                                </span>
-                              </div>
-                            </SelectItemText>
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="none">None</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {modelDownloading && (
-                      <div className="space-y-2">
-                        {modelTimeElapsed && (
-                          <div className="flex flex-row justify-between gap-2 text-muted-foreground">
-                            <p>{modelProgress}%</p>
-                            <p>{modelTimeElapsed}s</p>
-                          </div>
-                        )}
-                        <Progress value={modelProgress} className="w-full" />
-                      </div>
-                    )}
-                    {modelError && (
-                      <p className="text-destructive">{modelError}</p>
-                    )}
-                  </div>
+                  <Input value={user.email} disabled />
                 </Field>
               </FieldGroup>
             </FieldSet>
-          </div>
-        </FieldGroup>
-      </SheetContent>
+          ) : (
+            <Navigate to="/login" />
+          )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={passwordDialogShown} onOpenChange={setPasswordDialogShown}>
         <DialogContent className="w-fit">
@@ -525,8 +553,8 @@ const SettingsSheet = ({ ...props }: React.ComponentProps<typeof Dialog>) => {
           }
         }}
       />
-    </Sheet>
+    </div>
   );
 };
 
-export default SettingsSheet;
+export default SettingsPage;

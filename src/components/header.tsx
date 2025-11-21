@@ -7,25 +7,22 @@ import { Button } from "./ui/button";
 import { useSettingsStore } from "@/stores/settingsStore";
 import LockedDialog from "./ui/locked-dialog";
 import { useState } from "react";
-import SettingsSheet from "./settings";
+import { Link } from "react-router";
 
 const Header = () => {
   const isMobile = useIsMobile();
   const { isUnlocked, lock } = useJournalStore();
   const [openLockedDialog, setOpenLockedDialog] = useState(false);
   const { settings } = useSettingsStore();
-  const [openSettings, setOpenSettings] = useState(false);
 
   return (
     <header className="w-full flex h-16 shrink-0 items-center gap-2 px-4 sticky top-0 bg-background">
       {isMobile && <SidebarTrigger />}
       <div className="ml-auto flex flex-row">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setOpenSettings(true)}
-        >
-          <Settings />
+        <Button variant="ghost" size="icon" asChild>
+          <Link to="/settings">
+            <Settings />
+          </Link>
         </Button>
         {settings.lockEnabled &&
           (isUnlocked ? (
@@ -43,7 +40,6 @@ const Header = () => {
         open={openLockedDialog}
         onOpenChange={setOpenLockedDialog}
       />
-      <SettingsSheet open={openSettings} onOpenChange={setOpenSettings} />
     </header>
   );
 };
