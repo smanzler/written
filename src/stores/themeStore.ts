@@ -2,7 +2,6 @@ import { create } from "zustand";
 import {
   applyTheme,
   getInitialTheme,
-  getResolvedTheme,
   THEME_STORAGE_KEY,
   type Theme,
 } from "@/lib/theme";
@@ -56,8 +55,3 @@ export const useThemeStore = create<ThemeStoreState>((set, get) => {
     },
   };
 });
-
-export function useResolvedTheme(): "dark" | "light" {
-  const theme = useThemeStore((state) => state.theme);
-  return getResolvedTheme(theme);
-}

@@ -44,6 +44,9 @@ import { Separator } from "../ui/separator";
 import { Navigate, useSearchParams } from "react-router";
 import { useAuthStore } from "@/stores/authStore";
 import { Input } from "../ui/input";
+import { NativeSelect } from "../ui/native-select";
+import { useThemeStore } from "@/stores/themeStore";
+import { Theme } from "@/lib/theme";
 
 const EXAMPLE_TEXT = "Hello World";
 
@@ -84,6 +87,7 @@ const SettingsPage = () => {
   const [textColor, setTextColor] = useState<string | undefined>();
   const [lockLoading, setLockLoading] = useState(false);
   const { user, initializing } = useAuthStore();
+  const { theme, setTheme } = useThemeStore();
   const {
     models: llmModels,
     status: modelStatus,
@@ -324,6 +328,23 @@ const SettingsPage = () => {
                 />
               </Field>
             </FieldGroup>
+
+            <Field orientation="horizontal">
+              <FieldContent>
+                <FieldLabel>Theme</FieldLabel>
+                <FieldDescription>
+                  Change the theme of your journal.
+                </FieldDescription>
+              </FieldContent>
+              <NativeSelect
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as Theme)}
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </NativeSelect>
+            </Field>
           </FieldSet>
         </TabsContent>
 

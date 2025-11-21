@@ -1,20 +1,6 @@
 export type Theme = "dark" | "light" | "system";
-export type ResolvedTheme = "dark" | "light";
 
-export const THEME_STORAGE_KEY = "vite-ui-theme";
-
-/**
- * Gets the resolved theme (dark or light) from a theme preference.
- * If theme is "system", returns the system preference.
- */
-export function getResolvedTheme(theme: Theme): ResolvedTheme {
-  if (theme === "system") {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-  }
-  return theme;
-}
+export const THEME_STORAGE_KEY = "journal-theme";
 
 /**
  * Applies a theme to the document root element.

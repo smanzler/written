@@ -1,6 +1,5 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarTrigger } from "./ui/sidebar";
-import { ModeToggle } from "./mode-toggle";
 import { useJournalStore } from "@/stores/journalStore";
 import { Lock, Settings, Unlock } from "lucide-react";
 import { Button } from "./ui/button";
@@ -34,7 +33,6 @@ const Header = () => {
               <Lock />
             </Button>
           ))}
-        <ModeToggle variant="ghost" />
       </div>
       <LockedDialog
         open={openLockedDialog}
