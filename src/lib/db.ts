@@ -22,6 +22,7 @@ interface Settings {
   cleanupEnabled?: boolean;
   cleanupPrompt?: string;
   selectedModel?: string;
+  updated_at?: Date;
 }
 
 const db = new Dexie("WrittenDatabase") as Dexie & {

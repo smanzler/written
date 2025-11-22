@@ -26,6 +26,8 @@ import {
   UserPlus,
 } from "lucide-react";
 import { Link } from "react-router";
+import { sync } from "@/lib/sync";
+import { toast } from "sonner";
 
 const profile = {
   id: "123",
@@ -37,6 +39,18 @@ const profile = {
 export function NavUser() {
   const { isMobile, setOpen, setOpenMobile } = useSidebar();
   const { user, signOut, loading, initializing } = useAuthStore();
+
+  const handleSignOut = async () => {
+    try {
+      await sync();
+      await signOut();
+      setOpen(false);
+      setOpenMobile(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to log out. Please try again.");
+    }
+  };
 
   const isLoading = loading || initializing;
 
@@ -148,7 +162,7 @@ export function NavUser() {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
+                <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut />
                   Log out
                 </DropdownMenuItem>

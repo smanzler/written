@@ -1,13 +1,9 @@
 import { create } from "zustand";
 import { supabase } from "@/lib/supabase";
 import type { Session, User } from "@supabase/supabase-js";
-import {
-  startPeriodicSync,
-  setupVisibilitySync,
-  setupNetworkSync,
-  cleanup,
-  sync,
-} from "@/lib/sync";
+import { sync } from "@/lib/sync";
+import { useSyncStore } from "./syncStore";
+import { db } from "@/lib/db";
 
 type AuthStoreState = {
   session: Session | null;
@@ -24,19 +20,6 @@ type AuthStoreState = {
 export const useAuthStore = create<AuthStoreState>((set) => {
   let isInitializing = true;
 
-  const startSync = () => {
-    startPeriodicSync(30000);
-    setupVisibilitySync();
-    setupNetworkSync();
-    sync().catch((error) => {
-      console.error("Initial sync failed:", error);
-    });
-  };
-
-  const stopSync = () => {
-    cleanup();
-  };
-
   const handleAuthChange = async (session: Session | null) => {
     if (isInitializing) return;
 
@@ -44,9 +27,7 @@ export const useAuthStore = create<AuthStoreState>((set) => {
 
     try {
       if (session?.user?.id) {
-        startSync();
-      } else {
-        stopSync();
+        sync();
       }
     } finally {
       set({ loading: false });
@@ -79,10 +60,6 @@ export const useAuthStore = create<AuthStoreState>((set) => {
             user: session?.user || null,
             isAuthenticated: !!session?.user && !session?.user.is_anonymous,
           });
-
-          if (session?.user?.id) {
-            startSync();
-          }
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -134,13 +111,23 @@ export const useAuthStore = create<AuthStoreState>((set) => {
     async signOut() {
       set({ loading: true });
       try {
+        const { user } = useAuthStore.getState();
+        if (user) {
+          await db.journals.where("user_id").equals(user.id).delete();
+        }
+
+        const syncStore = useSyncStore.getState();
+        syncStore.setLastSyncAt(new Date(0));
+        syncStore.clearConflicts();
+        syncStore.setSyncError(null);
+
         await supabase.auth.signOut();
+
         set({
           session: null,
           user: null,
           isAuthenticated: false,
         });
-        stopSync();
       } finally {
         set({ loading: false });
       }

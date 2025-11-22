@@ -41,6 +41,7 @@ import {
   Sparkles,
   ChevronRight,
   ArrowLeft,
+  RefreshCcw,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -54,6 +55,8 @@ import { NativeSelect } from "../ui/native-select";
 import { useThemeStore } from "@/stores/themeStore";
 import { Theme } from "@/lib/theme";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSyncStore } from "@/stores/syncStore";
+import { sync } from "@/lib/sync";
 
 const EXAMPLE_TEXT = "Hello World";
 
@@ -486,6 +489,8 @@ const AiSection = () => {
 
 const ProfileSection = () => {
   const { user, initializing } = useAuthStore();
+  const { lastSyncAt, isSyncing } = useSyncStore();
+  const isMobile = useIsMobile();
 
   return initializing ? (
     <div className="flex flex-col items-center justify-center">
@@ -497,12 +502,24 @@ const ProfileSection = () => {
       <FieldLegend>Account</FieldLegend>
       <FieldDescription>Manage your account settings.</FieldDescription>
       <FieldGroup>
-        <Field orientation="horizontal">
+        <Field orientation={isMobile ? "vertical" : "horizontal"}>
           <FieldContent>
             <FieldLabel>Email</FieldLabel>
             <FieldDescription>Your email address.</FieldDescription>
           </FieldContent>
           <Input value={user.email} disabled className="w-fit" />
+        </Field>
+        <Field orientation={isMobile ? "vertical" : "horizontal"}>
+          <FieldContent>
+            <FieldLabel>Last Synced</FieldLabel>
+            <FieldDescription>
+              {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Never"}
+            </FieldDescription>
+          </FieldContent>
+          <Button variant="ghost" onClick={sync}>
+            {isSyncing ? <Spinner /> : <RefreshCcw className="size-4" />}
+            Sync
+          </Button>
         </Field>
       </FieldGroup>
     </FieldSet>

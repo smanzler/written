@@ -9,6 +9,7 @@ type SettingsState = {
   cleanupEnabled: boolean;
   cleanupPrompt: string;
   selectedModel: string | undefined;
+  updated_at: Date;
 };
 
 const cssColorToHex = (cssColor: string): string => {
@@ -53,6 +54,7 @@ const getDefaultSettings = (): SettingsState => {
     cleanupEnabled: false,
     cleanupPrompt: "Make me sound like a pirate.",
     selectedModel: undefined,
+    updated_at: new Date(),
   };
 };
 
