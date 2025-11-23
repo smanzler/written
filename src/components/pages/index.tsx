@@ -11,6 +11,7 @@ import LockedDialog from "../ui/locked-dialog";
 import { useLLMStore } from "@/stores/llmStore";
 import TextCarousel from "../ui/text-carousel";
 import { useAuthStore } from "@/stores/authStore";
+import { sync } from "@/lib/sync";
 
 function Index() {
   const [userInput, setUserInput] = useState<string>("");
@@ -90,6 +91,8 @@ function Index() {
 
       toast.dismiss();
       toast.success("Journal entry added successfully");
+
+      sync();
     } catch (error) {
       console.error("Failed to add journal entry:", error);
       toast.dismiss();
