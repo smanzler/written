@@ -4,6 +4,7 @@ export const getJournalDates = async () => {
   const journalsArray = await db.journals
     .orderBy("created_at")
     .reverse()
+    .filter((journal) => !journal.deleted_at)
     .toArray();
   // Group journals by date string in local timezone (YYYY-MM-DD)
   const data = journalsArray.reduce((grouped, journal) => {
@@ -35,12 +36,20 @@ export const getJournalsByDate = async (date?: Date) => {
   const journals = await db.journals
     .where("created_at")
     .between(start, end, true, true)
+    .filter((journal) => !journal.deleted_at)
     .toArray();
   return journals;
 };
 
 export const deleteJournal = async (id: number) => {
-  await db.journals.delete(id);
+  const journal = await db.journals.get(id);
+  if (!journal) return;
+
+  await db.journals.update(id, {
+    deleted_at: new Date(),
+    sync_status: journal.server_id ? "pending" : null,
+    updated_at: new Date(),
+  });
 };
 
 export const updateJournal = async (id: number, data: Partial<Journal>) => {

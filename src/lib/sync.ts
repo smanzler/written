@@ -24,8 +24,10 @@ export async function sync(): Promise<void> {
     syncStore.setLastSyncAt(new Date());
 
     const pending = await db.journals
-      .where("sync_status")
-      .notEqual("synced")
+      .filter(
+        (journal) =>
+          journal.sync_status !== "synced" && journal.deleted_at === null
+      )
       .count();
 
     syncStore.setPendingCount(pending);
@@ -46,52 +48,97 @@ export async function pull(): Promise<void> {
   if (!user) return;
 
   const lastSync = useSyncStore.getState().lastSyncAt ?? new Date(0);
+  const PAGE_SIZE = 100;
+  let offset = 0;
+  let hasMore = true;
 
-  const { data, error } = await supabase
-    .from("journals")
-    .select("*")
-    .eq("user_id", user.id)
-    .gte("updated_at", lastSync.toISOString())
-    .order("updated_at", { ascending: false });
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from("journals")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("updated_at", lastSync.toISOString())
+      .order("updated_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
 
-  if (error) throw error;
+    if (error) throw error;
 
-  for (const remoteJournal of data) {
-    const localJournal = await db.journals
-      .where("server_id")
-      .equals(remoteJournal.id)
-      .first();
-
-    const transformedRemoteJournal = transformRemote(remoteJournal);
-
-    if (localJournal) {
-      if (hasConflict(localJournal, transformedRemoteJournal)) {
-        const resolved = await resolveConflict(
-          localJournal,
-          transformedRemoteJournal
-        );
-        await db.journals.update(localJournal.id, resolved);
-      } else {
-        await db.journals.update(localJournal.id, transformedRemoteJournal);
-      }
-    } else {
-      await db.journals.add(transformedRemoteJournal);
+    if (!data || data.length === 0) {
+      hasMore = false;
+      break;
     }
+
+    for (const remoteJournal of data) {
+      if (remoteJournal.deleted_at) {
+        const localJournal = await db.journals
+          .where("server_id")
+          .equals(remoteJournal.id)
+          .first();
+
+        if (localJournal) {
+          await db.journals.delete(localJournal.id);
+        }
+        continue;
+      }
+
+      const localJournal = await db.journals
+        .where("server_id")
+        .equals(remoteJournal.id)
+        .first();
+
+      const transformedRemoteJournal = transformRemote(remoteJournal);
+
+      if (localJournal) {
+        if (hasConflict(localJournal, transformedRemoteJournal)) {
+          const resolved = await resolveConflict(
+            localJournal,
+            transformedRemoteJournal
+          );
+          await db.journals.update(localJournal.id, resolved);
+        } else {
+          await db.journals.update(localJournal.id, transformedRemoteJournal);
+        }
+      } else {
+        await db.journals.add(transformedRemoteJournal);
+      }
+    }
+
+    offset += PAGE_SIZE;
+    hasMore = data.length === PAGE_SIZE;
   }
 }
 
 export async function push(): Promise<void> {
   const { user } = useAuthStore.getState();
   if (!user) return;
+
   const pendingJournals = await db.journals
     .filter((journal) => journal.sync_status !== "synced")
     .toArray();
+
+  const errors: Array<{ journalId: number; error: Error }> = [];
 
   for (let i = 0; i < pendingJournals.length; i += 20) {
     const batch = pendingJournals.slice(i, i + 20);
 
     for (const journal of batch) {
       try {
+        if (journal.deleted_at && journal.server_id) {
+          const { error } = await supabase
+            .from("journals")
+            .delete()
+            .eq("id", journal.server_id)
+            .eq("user_id", user.id);
+
+          if (error) throw error;
+
+          await db.journals.delete(journal.id);
+          continue;
+        } else if (journal.deleted_at && !journal.server_id) {
+          await db.journals.delete(journal.id);
+          continue;
+        }
+
         if (journal.server_id) {
           const { error } = await supabase
             .from("journals")
@@ -100,6 +147,11 @@ export async function push(): Promise<void> {
             .eq("user_id", user.id);
 
           if (error) throw error;
+
+          await db.journals.update(journal.id, {
+            sync_status: "synced",
+            synced_at: new Date(),
+          });
         } else {
           const { data, error } = await supabase
             .from("journals")
@@ -122,9 +174,18 @@ export async function push(): Promise<void> {
         await db.journals.update(journal.id, {
           sync_status: "error",
         });
-        throw error;
+        errors.push({
+          journalId: journal.id,
+          error: error instanceof Error ? error : new Error("Unknown error"),
+        });
       }
     }
+  }
+
+  if (errors.length > 0) {
+    const errorMessage = `Failed to sync ${errors.length} journal(s)`;
+    console.error(errorMessage, errors);
+    throw new Error(errorMessage);
   }
 }
 
@@ -163,6 +224,7 @@ export function transformRemote(remote: any): Omit<Journal, "id"> {
     updated_at: new Date(remote.updated_at),
     synced_at: new Date(),
     sync_status: "synced",
+    deleted_at: remote.deleted_at ? new Date(remote.deleted_at) : null,
   };
 }
 
@@ -173,6 +235,7 @@ export function transformLocal(local: Journal): any {
     is_encrypted: local.is_encrypted,
     created_at: local.created_at.toISOString(),
     updated_at: local.updated_at.toISOString(),
+    deleted_at: local.deleted_at?.toISOString() ?? null,
   };
 }
 
@@ -215,6 +278,25 @@ export async function pushSettings(): Promise<void> {
   const localSettings = await db.settings.get(1);
 
   if (!localSettings) return;
+
+  const { data: remoteSettings, error: fetchError } = await supabase
+    .from("settings")
+    .select("updated_at")
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError && fetchError.code !== "PGRST116") {
+    throw fetchError;
+  }
+
+  if (remoteSettings) {
+    const localTime = localSettings.updated_at?.getTime() ?? 0;
+    const remoteTime = new Date(remoteSettings.updated_at).getTime();
+
+    if (remoteTime > localTime) {
+      return;
+    }
+  }
 
   const settingsToSync = {
     lock_enabled: localSettings.lockEnabled,

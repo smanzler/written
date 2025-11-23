@@ -11,6 +11,7 @@ interface Journal {
   updated_at: Date;
   synced_at: Date | null;
   sync_status: "pending" | "synced" | "conflict" | "error" | null;
+  deleted_at: Date | null;
   version?: number;
 }
 
@@ -52,6 +53,23 @@ db.version(2)
           synced_at: null,
           sync_status: null,
           version: 1,
+        })
+      )
+    );
+  });
+
+db.version(3)
+  .stores({
+    journals:
+      "++id, user_id, server_id, is_encrypted, raw_blob, encrypted_blob, created_at, updated_at, synced_at, sync_status, deleted_at",
+    settings: "id",
+  })
+  .upgrade(async (tx) => {
+    const journals = await tx.table("journals").toCollection().toArray();
+    await Promise.all(
+      journals.map((journal) =>
+        tx.table("journals").update(journal.id, {
+          deleted_at: null,
         })
       )
     );

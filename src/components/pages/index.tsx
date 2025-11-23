@@ -48,6 +48,7 @@ function Index() {
         sync_status: null,
         created_at: new Date(),
         updated_at: new Date(),
+        deleted_at: null,
       };
 
       if (!isUnlocked && settings.lockEnabled && !key) {
