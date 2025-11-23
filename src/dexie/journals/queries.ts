@@ -34,9 +34,15 @@ export const useDecryptedJournalsByDate = (
   );
   const [decrypting, setDecrypting] = useState(false);
 
+  const journalsKey = useMemo(() => {
+    if (!journals) return null;
+    return journals.map((j) => `${j.id}-${j.updated_at.getTime()}`).join(",");
+  }, [journals]);
+
   useEffect(() => {
     if (!journals || !isUnlocked || !settings.lockEnabled) {
       setDecrypted(new Map());
+      setDecrypting(false);
       return;
     }
 
@@ -75,7 +81,9 @@ export const useDecryptedJournalsByDate = (
     return () => {
       cancelled = true;
     };
-  }, [journals, isUnlocked, settings.lockEnabled, decryptText]);
+    // Use journalsKey instead of journals array to prevent unnecessary re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journalsKey, isUnlocked, settings.lockEnabled]);
 
   const merged = useMemo((): DecryptedJournal[] => {
     if (!journals) return [];

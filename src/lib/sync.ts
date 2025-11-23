@@ -2,6 +2,7 @@ import { useSyncStore } from "@/stores/syncStore";
 import { db, type Journal } from "./db";
 import { supabase } from "./supabase";
 import { useAuthStore } from "@/stores/authStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 export async function sync(): Promise<void> {
   const { user } = useAuthStore.getState();
@@ -24,10 +25,7 @@ export async function sync(): Promise<void> {
     syncStore.setLastSyncAt(new Date());
 
     const pending = await db.journals
-      .filter(
-        (journal) =>
-          journal.sync_status !== "synced" && journal.deleted_at === null
-      )
+      .filter((journal) => journal.sync_status !== "synced")
       .count();
 
     syncStore.setPendingCount(pending);
@@ -69,18 +67,6 @@ export async function pull(): Promise<void> {
     }
 
     for (const remoteJournal of data) {
-      if (remoteJournal.deleted_at) {
-        const localJournal = await db.journals
-          .where("server_id")
-          .equals(remoteJournal.id)
-          .first();
-
-        if (localJournal) {
-          await db.journals.delete(localJournal.id);
-        }
-        continue;
-      }
-
       const localJournal = await db.journals
         .where("server_id")
         .equals(remoteJournal.id)
@@ -123,22 +109,6 @@ export async function push(): Promise<void> {
 
     for (const journal of batch) {
       try {
-        if (journal.deleted_at && journal.server_id) {
-          const { error } = await supabase
-            .from("journals")
-            .delete()
-            .eq("id", journal.server_id)
-            .eq("user_id", user.id);
-
-          if (error) throw error;
-
-          await db.journals.delete(journal.id);
-          continue;
-        } else if (journal.deleted_at && !journal.server_id) {
-          await db.journals.delete(journal.id);
-          continue;
-        }
-
         if (journal.server_id) {
           const { error } = await supabase
             .from("journals")
@@ -229,43 +199,53 @@ export function transformRemote(remote: any): Omit<Journal, "id"> {
 }
 
 export function transformLocal(local: Journal): any {
-  return {
+  const result: any = {
     raw_blob: local.raw_blob,
     encrypted_blob: local.encrypted_blob,
     is_encrypted: local.is_encrypted,
     created_at: local.created_at.toISOString(),
     updated_at: local.updated_at.toISOString(),
-    deleted_at: local.deleted_at?.toISOString() ?? null,
   };
+
+  if (local.deleted_at) {
+    result.deleted_at = local.deleted_at.toISOString();
+  }
+
+  return result;
 }
 
 export async function pullSettings(): Promise<void> {
   const { user } = useAuthStore.getState();
+
   if (!user) return;
+
   const { data, error } = await supabase
     .from("settings")
     .select("*")
     .eq("user_id", user.id)
-    .single();
-  if (error && error.code !== "PGRST116") {
+    .maybeSingle();
+
+  if (error) {
     throw error;
   }
-  if (!data) return;
-  const localSettings = await db.settings.get(1);
-  if (localSettings) {
-    const localTime = localSettings.updated_at?.getTime() ?? 0;
-    const remoteTime = new Date(data.updated_at).getTime();
 
-    if (remoteTime > localTime) {
-      await db.settings.update(1, {
-        ...data,
-        id: 1,
-      });
-    }
-  } else {
-    await db.settings.add({
-      ...data,
-      id: 1,
+  if (!data) return;
+
+  const settingsStore = useSettingsStore.getState();
+  const localSettings = settingsStore.settings;
+  const localTime = localSettings.updated_at?.getTime() ?? 0;
+  const remoteTime = new Date(data.updated_at).getTime();
+
+  if (remoteTime > localTime) {
+    settingsStore.saveSettings({
+      lockEnabled: data.lock_enabled,
+      cursorColor: data.cursor_color,
+      textColor: data.text_color,
+      cleanupEnabled: data.cleanup_enabled,
+      cleanupPrompt: data.cleanup_prompt,
+      selectedModel: data.selected_model,
+      encryptedMaster: data.encrypted_master,
+      keySalt: data.key_salt,
     });
   }
 }
@@ -275,7 +255,7 @@ export async function pushSettings(): Promise<void> {
 
   if (!user) return;
 
-  const localSettings = await db.settings.get(1);
+  const localSettings = useSettingsStore.getState().settings;
 
   if (!localSettings) return;
 
@@ -283,9 +263,9 @@ export async function pushSettings(): Promise<void> {
     .from("settings")
     .select("updated_at")
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (fetchError && fetchError.code !== "PGRST116") {
+  if (fetchError) {
     throw fetchError;
   }
 
@@ -305,6 +285,8 @@ export async function pushSettings(): Promise<void> {
     cleanup_enabled: localSettings.cleanupEnabled,
     cleanup_prompt: localSettings.cleanupPrompt,
     selected_model: localSettings.selectedModel,
+    encrypted_master: localSettings.encryptedMaster,
+    key_salt: localSettings.keySalt,
     updated_at: new Date().toISOString(),
   };
 
@@ -315,9 +297,8 @@ export async function pushSettings(): Promise<void> {
 
   if (error) throw error;
 
-  await db.settings.update(1, {
-    updated_at: new Date(),
-  });
+  // Update local settings with new updated_at timestamp
+  await useSettingsStore.getState().saveSettings({});
 }
 
 // export function startPeriodicSync(intervalMs: number = 30000): void {

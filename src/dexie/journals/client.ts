@@ -53,5 +53,13 @@ export const deleteJournal = async (id: number) => {
 };
 
 export const updateJournal = async (id: number, data: Partial<Journal>) => {
-  await db.journals.update(id, data);
+  const journal = await db.journals.get(id);
+  if (!journal) return;
+
+  const syncStatus = journal.server_id ? "pending" : journal.sync_status;
+
+  await db.journals.update(id, {
+    ...data,
+    sync_status: syncStatus,
+  });
 };

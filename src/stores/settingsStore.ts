@@ -1,14 +1,15 @@
 import { create } from "zustand";
-import { db, Settings } from "@/lib/db";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 type SettingsState = {
-  id: number;
   lockEnabled: boolean;
   cursorColor: string;
   textColor: string;
   cleanupEnabled: boolean;
   cleanupPrompt: string;
   selectedModel: string | undefined;
+  encryptedMaster: string | undefined;
+  keySalt: string | undefined;
   updated_at: Date;
 };
 
@@ -47,13 +48,14 @@ const getDefaultSettings = (): SettingsState => {
     .trim();
 
   return {
-    id: 1,
     lockEnabled: false,
     cursorColor: "#3b82f6",
     textColor: cssColorToHex(primaryColor),
     cleanupEnabled: false,
     cleanupPrompt: "Make me sound like a pirate.",
     selectedModel: undefined,
+    encryptedMaster: undefined,
+    keySalt: undefined,
     updated_at: new Date(),
   };
 };
@@ -62,48 +64,83 @@ type SettingsStoreState = {
   settings: SettingsState;
   saving: boolean;
   initialized: boolean;
-  saveSettings: (newSettings: Partial<Settings>) => Promise<void>;
-  initialize: () => Promise<void>;
+  saveSettings: (
+    newSettings: Partial<Omit<SettingsState, "updated_at">>
+  ) => void;
+  initialize: () => void;
+  resetSettings: () => void;
 };
 
-export const useSettingsStore = create<SettingsStoreState>((set, get) => {
-  const getStoredSettings = async () => {
-    const storedSettings = await db.settings.get(1);
-    return storedSettings;
-  };
+export const useSettingsStore = create<SettingsStoreState>()(
+  persist(
+    (set, get) => {
+      const removeUndefined = <T extends Record<string, unknown>>(
+        obj: T
+      ): Partial<T> => {
+        return Object.fromEntries(
+          Object.entries(obj).filter(([_, value]) => value !== undefined)
+        ) as Partial<T>;
+      };
 
-  const removeUndefined = <T extends Record<string, unknown>>(
-    obj: T
-  ): Partial<T> => {
-    return Object.fromEntries(
-      Object.entries(obj).filter(
-        ([key, value]) => value !== undefined && key !== "id"
-      )
-    ) as Partial<T>;
-  };
-
-  return {
-    settings: getDefaultSettings(),
-    saving: false,
-    initialized: false,
-    async initialize() {
-      if (get().initialized) return;
-
-      const storedSettings = await getStoredSettings();
-      set({
-        settings: { ...getDefaultSettings(), ...storedSettings },
-        initialized: true,
-      });
-    },
-    async saveSettings(newSettings: Partial<Settings>) {
-      set({ saving: true });
-      const current = await getStoredSettings();
-      const joinedSettings = removeUndefined({ ...current, ...newSettings });
-      await db.settings.put({ id: 1, ...joinedSettings });
-      set({
-        settings: { ...getDefaultSettings(), ...joinedSettings },
+      return {
+        settings: getDefaultSettings(),
         saving: false,
-      });
+        initialized: false,
+        initialize() {
+          if (get().initialized) return;
+
+          set({ initialized: true });
+        },
+        saveSettings(newSettings: Partial<Omit<SettingsState, "updated_at">>) {
+          set({ saving: true });
+          const current = get().settings;
+          const joinedSettings = removeUndefined({
+            ...current,
+            ...newSettings,
+          });
+          set({
+            settings: {
+              ...getDefaultSettings(),
+              ...joinedSettings,
+              updated_at: new Date(),
+            },
+            saving: false,
+          });
+        },
+        resetSettings() {
+          set({ settings: getDefaultSettings() });
+        },
+      };
     },
-  };
-});
+    {
+      name: "written-settings",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        settings: {
+          ...state.settings,
+          updated_at: state.settings.updated_at.toISOString(),
+        },
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as {
+          settings?: Partial<SettingsState> & { updated_at?: string | Date };
+        };
+
+        if (!persisted.settings) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          settings: {
+            ...currentState.settings,
+            ...persisted.settings,
+            updated_at: persisted.settings.updated_at
+              ? new Date(persisted.settings.updated_at as string)
+              : currentState.settings.updated_at,
+          },
+        };
+      },
+    }
+  )
+);

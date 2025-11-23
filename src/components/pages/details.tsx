@@ -60,9 +60,7 @@ const Details = () => {
   const dateObject =
     year && month && day ? new Date(year, month - 1, day) : null;
 
-  const { journals, decrypting } = useDecryptedJournalsByDate(
-    dateObject ?? undefined
-  );
+  const { journals } = useDecryptedJournalsByDate(dateObject ?? undefined);
 
   const deleteJournal = useDeleteJournal();
   const updateJournal = useUpdateJournal();
@@ -107,7 +105,7 @@ const Details = () => {
     setSaving(false);
   };
 
-  if (!journals || decrypting) return null;
+  if (!journals) return null;
 
   if (!isUnlocked && settings.lockEnabled) {
     return (

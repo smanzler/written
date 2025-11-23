@@ -15,33 +15,19 @@ interface Journal {
   version?: number;
 }
 
-interface Settings {
-  id: number;
-  lockEnabled?: boolean;
-  cursorColor?: string;
-  textColor?: string;
-  cleanupEnabled?: boolean;
-  cleanupPrompt?: string;
-  selectedModel?: string;
-  updated_at?: Date;
-}
-
 const db = new Dexie("WrittenDatabase") as Dexie & {
   journals: EntityTable<Journal, "id">;
-  settings: EntityTable<Settings, "id">;
 };
 
 db.version(1).stores({
   journals:
     "++id, is_encrypted, raw_blob, encrypted_blob, created_at, updated_at, createdAt",
-  settings: "id",
 });
 
 db.version(2)
   .stores({
     journals:
       "++id, user_id, server_id, is_encrypted, raw_blob, encrypted_blob, created_at, updated_at, synced_at, sync_status",
-    settings: "id",
   })
   .upgrade(async (tx) => {
     const journals = await tx.table("journals").toCollection().toArray();
@@ -62,7 +48,6 @@ db.version(3)
   .stores({
     journals:
       "++id, user_id, server_id, is_encrypted, raw_blob, encrypted_blob, created_at, updated_at, synced_at, sync_status, deleted_at",
-    settings: "id",
   })
   .upgrade(async (tx) => {
     const journals = await tx.table("journals").toCollection().toArray();
@@ -75,5 +60,5 @@ db.version(3)
     );
   });
 
-export type { Journal, Settings };
+export type { Journal };
 export { db };

@@ -46,7 +46,7 @@ function Index() {
         encrypted_blob: null,
         is_encrypted: false,
         synced_at: null,
-        sync_status: null,
+        sync_status: user ? "pending" : null,
         created_at: new Date(),
         updated_at: new Date(),
         deleted_at: null,

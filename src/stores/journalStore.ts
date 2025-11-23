@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { decrypt, deriveKey, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
+import { useSettingsStore } from "./settingsStore";
 
 // helpers to encode/decode ArrayBuffers
 const toBase64 = (buf: Uint8Array<ArrayBuffer>) =>
@@ -74,10 +75,10 @@ export const useJournalStore = create<JournalStoreState>((set, get) => {
     masterKey: null,
     isUnlocked: false,
     async enableEncryption(password: string, force: boolean = false) {
-      const storedEncryptedMaster = localStorage.getItem("encryptedMaster");
-      const storedSalt = localStorage.getItem("keySalt");
+      const { settings, saveSettings } = useSettingsStore.getState();
 
-      if ((storedEncryptedMaster || storedSalt) && !force) return false;
+      if ((settings.encryptedMaster || settings.keySalt) && !force)
+        return false;
 
       const newMaster = crypto.getRandomValues(new Uint8Array(32));
       const { key, salt } = await deriveKey(password);
@@ -85,14 +86,16 @@ export const useJournalStore = create<JournalStoreState>((set, get) => {
       // encrypt master key with password key
       const { cipher, iv } = await encrypt(toBase64(newMaster), key);
 
-      localStorage.setItem(
-        "encryptedMaster",
-        JSON.stringify({
-          cipher: toBase64(new Uint8Array(cipher)),
-          iv: toBase64(iv),
-        })
-      );
-      localStorage.setItem("keySalt", toBase64(new Uint8Array(salt)));
+      const encryptedMasterJson = JSON.stringify({
+        cipher: toBase64(new Uint8Array(cipher)),
+        iv: toBase64(iv),
+      });
+      const keySaltBase64 = toBase64(new Uint8Array(salt));
+
+      await saveSettings({
+        encryptedMaster: encryptedMasterJson,
+        keySalt: keySaltBase64,
+      });
 
       const imported = await crypto.subtle.importKey(
         "raw",
@@ -109,22 +112,23 @@ export const useJournalStore = create<JournalStoreState>((set, get) => {
     async disableEncryption(key?: CryptoKey) {
       await decryptEntries(key);
 
-      localStorage.removeItem("encryptedMaster");
-      localStorage.removeItem("keySalt");
+      const settingsStore = useSettingsStore.getState();
+      await settingsStore.saveSettings({
+        encryptedMaster: undefined,
+        keySalt: undefined,
+      });
     },
     async unlock(password: string): Promise<CryptoKey | null> {
-      const storedEncryptedMaster = localStorage.getItem("encryptedMaster");
-      const storedSalt = localStorage.getItem("keySalt");
-
-      if (!storedEncryptedMaster || !storedSalt) {
+      const { settings } = useSettingsStore.getState();
+      if (!settings.encryptedMaster || !settings.keySalt) {
         return null;
       }
 
       // existing user — decrypt master key
       try {
-        const salt = fromBase64(storedSalt);
+        const salt = fromBase64(settings.keySalt);
         const { key } = await deriveKey(password, salt);
-        const { cipher, iv } = JSON.parse(storedEncryptedMaster);
+        const { cipher, iv } = JSON.parse(settings.encryptedMaster);
         const decrypted = await decrypt(
           fromBase64(cipher).buffer,
           fromBase64(iv),

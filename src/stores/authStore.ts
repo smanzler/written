@@ -4,6 +4,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { sync } from "@/lib/sync";
 import { useSyncStore } from "./syncStore";
 import { db } from "@/lib/db";
+import { useSettingsStore } from "./settingsStore";
 
 type AuthStoreState = {
   session: Session | null;
@@ -115,6 +116,9 @@ export const useAuthStore = create<AuthStoreState>((set) => {
         if (user) {
           await db.journals.where("user_id").equals(user.id).delete();
         }
+
+        const settingsStore = useSettingsStore.getState();
+        await settingsStore.resetSettings();
 
         const syncStore = useSyncStore.getState();
         syncStore.setLastSyncAt(new Date(0));
