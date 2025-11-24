@@ -53,8 +53,9 @@ const Details = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
-  const [openOriginalContentDialog, setOpenOriginalContentDialog] =
-    useState(false);
+  const [openOriginalContentDialog, setOpenOriginalContentDialog] = useState<
+    number | null
+  >(null);
 
   const [year, month, day] = date?.split("-").map(Number) || [];
   const dateObject =
@@ -230,7 +231,7 @@ const Details = () => {
               <DropdownMenuContent align="end">
                 {journal.cleaned_content && (
                   <DropdownMenuItem
-                    onClick={() => setOpenOriginalContentDialog(true)}
+                    onClick={() => setOpenOriginalContentDialog(journal.id)}
                   >
                     <FileText />
                     View Original
@@ -262,29 +263,34 @@ const Details = () => {
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Dialog
-              open={openOriginalContentDialog}
-              onOpenChange={setOpenOriginalContentDialog}
-            >
-              <DialogContent>
-                <DialogHeader className="mb-4">
-                  <DialogTitle>Original Content</DialogTitle>
-                  <DialogDescription>
-                    The following content was originally written:
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col space-y-2 max-h-[60vh] overflow-y-auto">
-                  <Label className="text-muted-foreground">
-                    {journal.created_at.toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
-                  </Label>
-                  <p className="text-sm wrap-anywhere">{journal.content}</p>
-                </div>
-              </DialogContent>
-            </Dialog>
+
+            {openOriginalContentDialog === journal.id && (
+              <Dialog
+                open={openOriginalContentDialog === journal.id}
+                onOpenChange={(open) =>
+                  !open && setOpenOriginalContentDialog(null)
+                }
+              >
+                <DialogContent>
+                  <DialogHeader className="mb-4">
+                    <DialogTitle>Original Content</DialogTitle>
+                    <DialogDescription>
+                      The following content was originally written:
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col space-y-2 max-h-[60vh] overflow-y-auto">
+                    <Label className="text-muted-foreground">
+                      {journal.created_at.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </Label>
+                    <p className="text-sm wrap-anywhere">{journal.content}</p>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </React.Fragment>
         ))}
       </div>
