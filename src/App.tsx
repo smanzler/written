@@ -15,6 +15,7 @@ import Login from "./components/pages/login";
 import Signup from "./components/pages/signup";
 import { MigrateJournalsDialog } from "./components/auth/migrate-journals-dialog";
 import SettingsPage from "./components/pages/settings";
+import { GlobalDialog } from "./components/ui/GlobalDialog";
 
 function App() {
   const isMobile = useIsMobile();
@@ -47,6 +48,7 @@ function App() {
         </SidebarInset>
         <Toaster position={isMobile ? "top-center" : "bottom-right"} />
         <MigrateJournalsDialog />
+        <GlobalDialog />
       </BrowserRouter>
     </SidebarProvider>
   );

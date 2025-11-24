@@ -50,6 +50,7 @@ function Index() {
         created_at: new Date(),
         updated_at: new Date(),
         deleted_at: null,
+        crypto_applied_at: null,
       };
 
       if (!isUnlocked && settings.lockEnabled && !key) {
@@ -79,6 +80,7 @@ function Index() {
           ...journal,
           encrypted_blob: JSON.stringify(result),
           is_encrypted: true,
+          crypto_applied_at: new Date(),
         };
       } else {
         journal = {

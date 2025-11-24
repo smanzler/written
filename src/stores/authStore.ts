@@ -122,7 +122,6 @@ export const useAuthStore = create<AuthStoreState>((set) => {
 
         const syncStore = useSyncStore.getState();
         syncStore.setLastSyncAt(new Date(0));
-        syncStore.clearConflicts();
         syncStore.setSyncError(null);
 
         await supabase.auth.signOut();

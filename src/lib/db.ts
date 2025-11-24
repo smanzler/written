@@ -12,7 +12,7 @@ interface Journal {
   synced_at: Date | null;
   sync_status: "pending" | "synced" | "conflict" | "error" | null;
   deleted_at: Date | null;
-  version?: number;
+  crypto_applied_at: Date | null;
 }
 
 const db = new Dexie("WrittenDatabase") as Dexie & {
@@ -55,6 +55,22 @@ db.version(3)
       journals.map((journal) =>
         tx.table("journals").update(journal.id, {
           deleted_at: null,
+        })
+      )
+    );
+  });
+
+db.version(4)
+  .stores({
+    journals:
+      "++id, user_id, server_id, is_encrypted, raw_blob, encrypted_blob, created_at, updated_at, synced_at, sync_status, deleted_at, crypto_applied_at",
+  })
+  .upgrade(async (tx) => {
+    const journals = await tx.table("journals").toCollection().toArray();
+    await Promise.all(
+      journals.map((journal) =>
+        tx.table("journals").update(journal.id, {
+          crypto_applied_at: null,
         })
       )
     );

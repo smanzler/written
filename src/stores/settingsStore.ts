@@ -62,7 +62,6 @@ const getDefaultSettings = (): SettingsState => {
 
 type SettingsStoreState = {
   settings: SettingsState;
-  saving: boolean;
   initialized: boolean;
   saveSettings: (
     newSettings: Partial<Omit<SettingsState, "updated_at">>
@@ -92,7 +91,6 @@ export const useSettingsStore = create<SettingsStoreState>()(
           set({ initialized: true });
         },
         saveSettings(newSettings: Partial<Omit<SettingsState, "updated_at">>) {
-          set({ saving: true });
           const current = get().settings;
           const joinedSettings = removeUndefined({
             ...current,
@@ -104,7 +102,6 @@ export const useSettingsStore = create<SettingsStoreState>()(
               ...joinedSettings,
               updated_at: new Date(),
             },
-            saving: false,
           });
         },
         resetSettings() {

@@ -21,6 +21,8 @@ type JournalStoreState = {
     key?: CryptoKey
   ) => Promise<{ cipher: string; iv: string }>;
   decryptText: (cipher: string, iv: string, key?: CryptoKey) => Promise<string>;
+  encryptEntries: (key?: CryptoKey) => Promise<void>;
+  decryptEntries: (key?: CryptoKey) => Promise<void>;
 };
 
 export const useJournalStore = create<JournalStoreState>((set, get) => {
@@ -113,7 +115,7 @@ export const useJournalStore = create<JournalStoreState>((set, get) => {
       await decryptEntries(key);
 
       const settingsStore = useSettingsStore.getState();
-      await settingsStore.saveSettings({
+      settingsStore.saveSettings({
         encryptedMaster: undefined,
         keySalt: undefined,
       });
@@ -169,6 +171,51 @@ export const useJournalStore = create<JournalStoreState>((set, get) => {
       const decryptionKey = key ?? masterKey ?? undefined;
       if (!decryptionKey) throw new Error("Journal locked");
       return decrypt(fromBase64(cipher).buffer, fromBase64(iv), decryptionKey);
+    },
+    async encryptEntries(key?: CryptoKey) {
+      const entries = await db.journals.toArray();
+      const { encryptText } = get();
+
+      const updates = await Promise.all(
+        entries.map(async (entry) => {
+          if (!entry.raw_blob)
+            return { key: entry.id, changes: { encrypted_blob: null } };
+          const result = await encryptText(entry.raw_blob, key);
+          return {
+            key: entry.id,
+            changes: {
+              raw_blob: null,
+              encrypted_blob: JSON.stringify(result),
+              is_encrypted: true,
+            },
+          };
+        })
+      );
+
+      await db.journals.bulkUpdate(updates);
+    },
+    async decryptEntries(key?: CryptoKey) {
+      const entries = await db.journals.toArray();
+      const { decryptText } = get();
+
+      const updates = await Promise.all(
+        entries.map(async (entry) => {
+          if (!entry.encrypted_blob)
+            return { key: entry.id, changes: { raw_blob: null } };
+          const { cipher, iv } = JSON.parse(entry.encrypted_blob);
+          const result = await decryptText(cipher, iv, key);
+          return {
+            key: entry.id,
+            changes: {
+              raw_blob: result,
+              encrypted_blob: null,
+              is_encrypted: false,
+            },
+          };
+        })
+      );
+
+      await db.journals.bulkUpdate(updates);
     },
   };
 });

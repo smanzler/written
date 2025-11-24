@@ -3,6 +3,8 @@ import { db, type Journal } from "./db";
 import { supabase } from "./supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { DialogType, useDialogStore } from "@/stores/dialogStore";
+import { useJournalStore } from "@/stores/journalStore";
 
 export async function sync(): Promise<void> {
   const { user } = useAuthStore.getState();
@@ -11,24 +13,30 @@ export async function sync(): Promise<void> {
     return;
   }
 
+  const { settings } = useSettingsStore.getState();
+  const { isUnlocked } = useJournalStore.getState();
+
+  if (!isUnlocked && settings.lockEnabled) {
+    return;
+  }
+
   const syncStore = useSyncStore.getState();
+
+  if (syncStore.isSyncing) {
+    return;
+  }
+
   syncStore.setSyncing(true);
   syncStore.setSyncError(null);
 
   try {
-    await pull();
     await pullSettings();
+    await pull();
 
-    await push();
     await pushSettings();
+    await push();
 
     syncStore.setLastSyncAt(new Date());
-
-    const pending = await db.journals
-      .filter((journal) => journal.sync_status !== "synced")
-      .count();
-
-    syncStore.setPendingCount(pending);
   } catch (error) {
     console.error("Sync failed:", error);
     syncStore.setSyncError(
@@ -46,6 +54,7 @@ export async function pull(): Promise<void> {
   if (!user) return;
 
   const lastSync = useSyncStore.getState().lastSyncAt ?? new Date(0);
+  const { settings } = useSettingsStore.getState();
   const PAGE_SIZE = 100;
   let offset = 0;
   let hasMore = true;
@@ -72,18 +81,72 @@ export async function pull(): Promise<void> {
         .equals(remoteJournal.id)
         .first();
 
-      const transformedRemoteJournal = transformRemote(remoteJournal);
+      let transformedRemoteJournal = transformRemote(remoteJournal);
+
+      // check if remote has diff crypto from local settings
+      if (remoteJournal.is_encrypted !== settings.lockEnabled) {
+        const { decryptText, encryptText } = useJournalStore.getState();
+        let journalChanges: Partial<Journal> = {
+          raw_blob: null,
+          encrypted_blob: null,
+          is_encrypted: false,
+        };
+
+        if (remoteJournal.is_encrypted) {
+          if (!remoteJournal.encrypted_blob) {
+            throw new Error("No encrypted blob");
+          }
+
+          const { cipher, iv } = JSON.parse(remoteJournal.encrypted_blob);
+
+          if (!cipher || !iv) {
+            throw new Error("Incorrectly formatted blob");
+          }
+
+          const decryptedText = await decryptText(cipher, iv);
+
+          journalChanges = {
+            ...journalChanges,
+            raw_blob: decryptedText,
+            crypto_applied_at: new Date(),
+          };
+        } else {
+          if (!remoteJournal.raw_blob) {
+            throw new Error("No unencrypted content");
+          }
+
+          const encryptedText = await encryptText(remoteJournal.raw_blob);
+
+          journalChanges = {
+            ...journalChanges,
+            encrypted_blob: JSON.stringify(encryptedText),
+            is_encrypted: true,
+            crypto_applied_at: new Date(),
+          };
+        }
+
+        transformedRemoteJournal = {
+          ...transformedRemoteJournal,
+          ...journalChanges,
+        };
+      }
 
       if (localJournal) {
-        if (hasConflict(localJournal, transformedRemoteJournal)) {
-          const resolved = await resolveConflict(
-            localJournal,
-            transformedRemoteJournal
-          );
-          await db.journals.update(localJournal.id, resolved);
+        const localUpdatedAt = new Date(localJournal.updated_at).getTime();
+        const remoteUpdatedAt = new Date(remoteJournal.updated_at).getTime();
+
+        let resolved: Omit<Journal, "id">;
+
+        if (remoteUpdatedAt > localUpdatedAt) {
+          resolved = transformedRemoteJournal;
         } else {
-          await db.journals.update(localJournal.id, transformedRemoteJournal);
+          resolved = localJournal;
         }
+
+        await db.journals.put({
+          ...resolved,
+          id: localJournal.id,
+        });
       } else {
         await db.journals.add(transformedRemoteJournal);
       }
@@ -96,10 +159,20 @@ export async function pull(): Promise<void> {
 
 export async function push(): Promise<void> {
   const { user } = useAuthStore.getState();
+
   if (!user) return;
 
+  const { lastSyncAt } = useSyncStore.getState();
+
+  const safeLastSyncAt = lastSyncAt ? lastSyncAt : new Date(0);
+
   const pendingJournals = await db.journals
-    .filter((journal) => journal.sync_status !== "synced")
+    .filter(
+      (journal) =>
+        journal.updated_at > safeLastSyncAt ||
+        (!!journal.crypto_applied_at &&
+          journal.crypto_applied_at > safeLastSyncAt)
+    )
     .toArray();
 
   const errors: Array<{ journalId: number; error: Error }> = [];
@@ -159,30 +232,6 @@ export async function push(): Promise<void> {
   }
 }
 
-export function hasConflict(local: Journal, remote: any): boolean {
-  const localTime = new Date(local.updated_at).getTime();
-  const remoteTime = new Date(remote.updated_at).getTime();
-  const lastSync = local.synced_at ? new Date(local.synced_at).getTime() : 0;
-
-  return localTime > lastSync && remoteTime > lastSync;
-}
-
-export async function resolveConflict(
-  local: Journal,
-  remote: Omit<Journal, "id">
-): Promise<Partial<Journal>> {
-  const localTime = new Date(local.updated_at).getTime();
-  const remoteTime = new Date(remote.updated_at).getTime();
-
-  if (remoteTime > localTime) {
-    const syncStore = useSyncStore.getState();
-    syncStore.addConflict({ localId: local.id!, remoteId: remote.server_id! });
-    return transformRemote(remote);
-  } else {
-    return local;
-  }
-}
-
 export function transformRemote(remote: any): Omit<Journal, "id"> {
   return {
     server_id: remote.id,
@@ -195,6 +244,9 @@ export function transformRemote(remote: any): Omit<Journal, "id"> {
     synced_at: new Date(),
     sync_status: "synced",
     deleted_at: remote.deleted_at ? new Date(remote.deleted_at) : null,
+    crypto_applied_at: remote.crypto_applied_at
+      ? new Date(remote.crypto_applied_at)
+      : null,
   };
 }
 
@@ -219,6 +271,8 @@ export async function pullSettings(): Promise<void> {
 
   if (!user) return;
 
+  const { openDialog } = useDialogStore.getState();
+
   const { data, error } = await supabase
     .from("settings")
     .select("*")
@@ -229,14 +283,98 @@ export async function pullSettings(): Promise<void> {
     throw error;
   }
 
-  if (!data) return;
-
   const settingsStore = useSettingsStore.getState();
   const localSettings = settingsStore.settings;
   const localTime = localSettings.updated_at?.getTime() ?? 0;
-  const remoteTime = new Date(data.updated_at).getTime();
 
-  if (remoteTime > localTime) {
+  if (!data) {
+    return;
+  }
+
+  const remoteTime = new Date(data.updated_at ?? 0).getTime();
+
+  const encryptionIsDifferent =
+    data.lock_enabled != localSettings.lockEnabled ||
+    data.encrypted_master != localSettings.encryptedMaster ||
+    data.key_salt != localSettings.keySalt;
+
+  if (encryptionIsDifferent) {
+    const buttonsDialogOptions: DialogType = {
+      type: "buttons",
+      props: {
+        title: "Encryption Settings Conflict",
+        description:
+          "Your encryption settings are different on this device compared to what is saved in the cloud. Would you like to keep your settings from this device, or would you like to use the data from the cloud.",
+        buttons: [
+          { label: "Keep Local", value: "local", variant: "outline" },
+          { label: "Use Cloud", value: "remote", variant: "destructive" },
+        ],
+      },
+    };
+
+    const res = await openDialog(buttonsDialogOptions);
+
+    if (res === "local") {
+      return;
+    } else if (res === "remote") {
+      const { unlock, decryptEntries, encryptEntries } =
+        useJournalStore.getState();
+      if (data.lock_enabled) {
+        if (!data.key_salt) {
+          throw new Error("No remote salt found");
+        }
+
+        const passwordDialogOptions: DialogType = {
+          type: "password",
+          props: {
+            title: "What is the remote password?",
+            description: "nice",
+          },
+        };
+        const password = await openDialog(passwordDialogOptions);
+
+        if (!password) {
+          throw new Error("Unable to get key");
+        }
+
+        settingsStore.saveSettings({
+          lockEnabled: data.lock_enabled,
+          cursorColor: data.cursor_color,
+          textColor: data.text_color,
+          cleanupEnabled: data.cleanup_enabled,
+          cleanupPrompt: data.cleanup_prompt,
+          selectedModel: data.selected_model,
+          encryptedMaster: data.encrypted_master,
+          keySalt: data.key_salt,
+        });
+
+        const key = await unlock(password);
+
+        if (!key) {
+          settingsStore.saveSettings(localSettings);
+
+          throw new Error("Password not correct");
+        }
+
+        await encryptEntries(key);
+      } else {
+        settingsStore.saveSettings({
+          lockEnabled: data.lock_enabled,
+          cursorColor: data.cursor_color,
+          textColor: data.text_color,
+          cleanupEnabled: data.cleanup_enabled,
+          cleanupPrompt: data.cleanup_prompt,
+          selectedModel: data.selected_model,
+          encryptedMaster: data.encrypted_master,
+          keySalt: data.key_salt,
+        });
+
+        await decryptEntries();
+      }
+    } else {
+      throw new Error("Unable to sync due to settings conflict");
+    }
+  } else if (remoteTime > localTime) {
     settingsStore.saveSettings({
       lockEnabled: data.lock_enabled,
       cursorColor: data.cursor_color,
@@ -259,46 +397,27 @@ export async function pushSettings(): Promise<void> {
 
   if (!localSettings) return;
 
-  const { data: remoteSettings, error: fetchError } = await supabase
-    .from("settings")
-    .select("updated_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (fetchError) {
-    throw fetchError;
-  }
-
-  if (remoteSettings) {
-    const localTime = localSettings.updated_at?.getTime() ?? 0;
-    const remoteTime = new Date(remoteSettings.updated_at).getTime();
-
-    if (remoteTime > localTime) {
-      return;
-    }
-  }
-
   const settingsToSync = {
+    user_id: user.id,
     lock_enabled: localSettings.lockEnabled,
     cursor_color: localSettings.cursorColor,
     text_color: localSettings.textColor,
     cleanup_enabled: localSettings.cleanupEnabled,
     cleanup_prompt: localSettings.cleanupPrompt,
-    selected_model: localSettings.selectedModel,
-    encrypted_master: localSettings.encryptedMaster,
-    key_salt: localSettings.keySalt,
+    selected_model: localSettings.selectedModel ?? null,
+    encrypted_master: localSettings.encryptedMaster ?? null,
+    key_salt: localSettings.keySalt ?? null,
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase
-    .from("settings")
-    .upsert(settingsToSync)
-    .eq("user_id", user.id);
+  const { error } = await supabase.from("settings").upsert(settingsToSync, {
+    onConflict: "user_id",
+  });
 
   if (error) throw error;
 
   // Update local settings with new updated_at timestamp
-  await useSettingsStore.getState().saveSettings({});
+  useSettingsStore.getState().saveSettings({});
 }
 
 // export function startPeriodicSync(intervalMs: number = 30000): void {
