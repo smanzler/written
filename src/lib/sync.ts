@@ -6,6 +6,53 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { DialogType, useDialogStore } from "@/stores/dialogStore";
 import { useJournalStore } from "@/stores/journalStore";
 
+// Helper to check if error is transient (retryable)
+function isTransientError(error: any): boolean {
+  if (!error) return false;
+
+  // Network errors
+  if (error.message?.includes("network") || error.message?.includes("fetch")) {
+    return true;
+  }
+
+  // HTTP 5xx errors (server errors)
+  if (error.status >= 500 && error.status < 600) {
+    return true;
+  }
+
+  // Rate limiting (429)
+  if (error.status === 429) {
+    return true;
+  }
+
+  return false;
+}
+
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: any;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === maxRetries || !isTransientError(error)) {
+        throw error;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
 export async function sync(): Promise<void> {
   const { user } = useAuthStore.getState();
 
@@ -175,60 +222,88 @@ export async function push(): Promise<void> {
     )
     .toArray();
 
-  const errors: Array<{ journalId: number; error: Error }> = [];
+  const errors: Array<{
+    journalId: number;
+    error: Error;
+    isTransient: boolean;
+  }> = [];
+  const permanentErrors: Array<{ journalId: number; error: Error }> = [];
 
   for (let i = 0; i < pendingJournals.length; i += 20) {
     const batch = pendingJournals.slice(i, i + 20);
 
     for (const journal of batch) {
       try {
-        if (journal.server_id) {
-          const { error } = await supabase
-            .from("journals")
-            .update(transformLocal(journal))
-            .eq("id", journal.server_id)
-            .eq("user_id", user.id);
+        await retryWithBackoff(async () => {
+          if (journal.server_id) {
+            const { error } = await supabase
+              .from("journals")
+              .update(transformLocal(journal))
+              .eq("id", journal.server_id)
+              .eq("user_id", user.id);
 
-          if (error) throw error;
+            if (error) throw error;
 
-          await db.journals.update(journal.id, {
-            sync_status: "synced",
-            synced_at: new Date(),
-          });
-        } else {
-          const { data, error } = await supabase
-            .from("journals")
-            .insert({
-              ...transformLocal(journal),
-              user_id: user.id,
-            })
-            .select()
-            .single();
+            await db.journals.update(journal.id, {
+              sync_status: "synced",
+              synced_at: new Date(),
+            });
+          } else {
+            const { data, error } = await supabase
+              .from("journals")
+              .insert({
+                ...transformLocal(journal),
+                user_id: user.id,
+              })
+              .select()
+              .single();
 
-          if (error) throw error;
+            if (error) throw error;
 
-          await db.journals.update(journal.id, {
-            server_id: data.id,
-            sync_status: "synced",
-            synced_at: new Date(),
-          });
-        }
-      } catch (error) {
-        await db.journals.update(journal.id, {
-          sync_status: "error",
+            await db.journals.update(journal.id, {
+              server_id: data.id,
+              sync_status: "synced",
+              synced_at: new Date(),
+            });
+          }
         });
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error("Unknown error");
+        const isTransient = isTransientError(error);
+
+        await db.journals.update(journal.id, {
+          sync_status: isTransient ? "pending" : "error",
+        });
+
         errors.push({
           journalId: journal.id,
-          error: error instanceof Error ? error : new Error("Unknown error"),
+          error: err,
+          isTransient,
         });
+
+        if (!isTransient) {
+          permanentErrors.push({
+            journalId: journal.id,
+            error: err,
+          });
+        }
       }
     }
   }
 
-  if (errors.length > 0) {
-    const errorMessage = `Failed to sync ${errors.length} journal(s)`;
-    console.error(errorMessage, errors);
+  if (permanentErrors.length > 0) {
+    const errorMessage = `Failed to sync ${permanentErrors.length} journal(s) permanently`;
+    console.error(errorMessage, permanentErrors);
     throw new Error(errorMessage);
+  }
+
+  if (errors.length > 0 && errors.length === permanentErrors.length) {
+  } else if (errors.length > 0) {
+    const transientCount = errors.filter((e) => e.isTransient).length;
+    console.warn(
+      `${transientCount} journal(s) failed to sync but will be retried`,
+      errors.filter((e) => e.isTransient)
+    );
   }
 }
 
@@ -261,6 +336,10 @@ export function transformLocal(local: Journal): any {
 
   if (local.deleted_at) {
     result.deleted_at = local.deleted_at.toISOString();
+  }
+
+  if (local.crypto_applied_at) {
+    result.crypto_applied_at = local.crypto_applied_at.toISOString();
   }
 
   return result;
